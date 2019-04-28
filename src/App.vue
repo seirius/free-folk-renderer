@@ -15,14 +15,9 @@
       </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
-                <li class="nav-item active">
-                    <a class="nav-link">
-                        <router-link to="/">Home</router-link>
-                    </a>
-                </li>
                 <li class="nav-item">
                     <a class="nav-link">
-                        <router-link to="/youtube">Youtube</router-link>
+                        <router-link to="/">Youtube</router-link>
                     </a>
                 </li>
             </ul>
@@ -35,12 +30,12 @@
 </template>
 
 <style>
+#nav {
+    margin-bottom: 20px;
+}
 #app {
-    font-family: "Avenir", Helvetica, Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-    color: #2c3e50;
-    margin-top: 60px;
 }
 </style>
