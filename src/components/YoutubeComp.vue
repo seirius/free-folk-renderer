@@ -1,10 +1,18 @@
 <template>
 <div class="hello">
     <form action="">
-        <div class="input-group mb-3">
-            <input type="text" v-model="videoSearch" class="form-control" placeholder="Video URL" aria-label="Video URL" aria-describedby="basic-addon1">
-            <div class="input-group-append">
-                <button v-on:click="searchVideo" class="btn btn-outline-secondary" type="button">Search</button>
+        <div class="row">
+            <div class="input-group mb-3 col-lg">
+                <input type="text" v-model="path" class="form-control" placeholder="Save Path" aria-label="Save Path" aria-describedby="basic-addon1" readonly>
+                <div class="input-group-append">
+                    <button v-on:click="savePath" class="btn btn-outline-secondary" type="button">Set path</button>
+                </div>
+            </div>
+            <div class="input-group mb-3 col-lg">
+                <input type="text" v-model="videoSearch" class="form-control" placeholder="Video URL" aria-label="Video URL" aria-describedby="basic-addon1">
+                <div class="input-group-append">
+                    <button v-on:click="searchVideo" class="btn btn-outline-secondary" type="button">Search</button>
+                </div>
             </div>
         </div>
     </form>
@@ -16,7 +24,7 @@
                 <p class="card-title cut-text">{{video.title}}</p>
                 <p class="card-text cut-text">{{video.description}}</p>
                 <div class="text-center">
-                    <button class="btn btn-primary" type="button">Download</button>
+                    <button class="btn btn-primary" v-on:click="downloadVideo(video.title)" type="button">Download</button>
                 </div>
             </div>
         </div>
@@ -33,7 +41,8 @@ export default {
     data: function () {
         return {
             videoList: [],
-            videoSearch: ""
+            videoSearch: "https://www.youtube.com/watch?v=NfQSASESKoU",
+            path: "C:/temp"
         }
     },
     methods: {
@@ -54,6 +63,30 @@ export default {
             if (index > -1) {
                 this.videoList.splice(index, 1);
             }
+        },
+        getVideoByTitle: function (title) {
+            return this.videoList.find(video => video.title === title);
+        },
+        downloadVideo: function (title) {
+            const video = this.getVideoByTitle(title);
+            if (video && video.video_url && this.path) {
+                const vid = ytdl(video.video_url)
+                vid.pipe(window.electron.fs
+                .createWriteStream(window.electron.path
+                .join(this.path, video.title + ".mp4")));
+                vid.on("response", res => {
+                    console.log(res);
+                });
+                vid.on("error", err => console.error(err));
+            }
+        },
+        savePath: function () {
+            const paths = window.electron.dialog.showOpenDialog({
+                properties: ["openDirectory"]
+            });
+            if (paths && paths.length === 1) {
+                this.path = paths[0];
+            }
         }
     }
 }
@@ -64,9 +97,6 @@ export default {
 <style scoped>
 .video {
     position: relative;
-    padding: 0px;
-    padding-left: 2px;
-    padding-right: 2px;
 }
 .close {
     position: absolute;
@@ -81,22 +111,5 @@ export default {
     overflow: hidden; 
     height: 1.2em; 
     white-space: nowrap;
-}
-h3 {
-    margin: 40px 0 0;
-}
-
-ul {
-    list-style-type: none;
-    padding: 0;
-}
-
-li {
-    display: inline-block;
-    margin: 0 10px;
-}
-
-a {
-    color: #42b983;
 }
 </style>
