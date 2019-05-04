@@ -24,25 +24,32 @@
                 <p class="card-title cut-text">{{video.title}}</p>
                 <p class="card-text cut-text">{{video.description}}</p>
                 <div class="text-center">
-                    <button class="btn btn-primary" v-on:click="downloadVideo(video.title)" type="button">Download</button>
+                    <button class="btn btn-primary" v-on:click="downloadVideo(video.title)" type="button">Download video</button>
+                    <button class="btn btn-outlineprimary" v-on:click="downloadMusic(video.title)" type="button">Download mp3</button>
                 </div>
             </div>
         </div>
     </div>
+    <Modal ref="modal"/>
 </div>
 </template>
 
 <script>
 import * as ytdl from "ytdl-core";
+import Modal from '@/components/Modal.vue';
+import { downloadVideo, downloadMusic } from "@/components/youtube-util/youtube.js"
 
 export default {
-    name: 'HelloWorld',
+    name: 'Youtube',
+    components: {
+        Modal
+    },
     props: {},
     data: function () {
         return {
             videoList: [],
-            videoSearch: "https://www.youtube.com/watch?v=NfQSASESKoU",
-            path: "C:/temp"
+            videoSearch: "https://www.youtube.com/watch?v=fCXW4DsjzH0",
+            path: "/home/andriy/Downloads"
         }
     },
     methods: {
@@ -70,14 +77,31 @@ export default {
         downloadVideo: function (title) {
             const video = this.getVideoByTitle(title);
             if (video && video.video_url && this.path) {
-                const vid = ytdl(video.video_url)
-                vid.pipe(window.electron.fs
-                .createWriteStream(window.electron.path
-                .join(this.path, video.title + ".mp4")));
-                vid.on("response", res => {
-                    console.log(res);
+                downloadVideo({
+                    path: this.path,
+                    title: video.title,
+                    url: video.video_url
+                }).then(response => {
+                    this.$refs.modal.openModal({
+                        title: "Success!",
+                        text: "Video download complete"
+                    });
+                }).catch(error => console.error(error));
+            }
+        },
+        downloadMusic: function (title) {
+            const video = this.getVideoByTitle(title);
+            if (video && video.video_url && this.path) {
+                downloadMusic({
+                    path: this.path,
+                    title: video.title,
+                    url: video.video_url
+                }).then(() => {
+                    this.$refs.modal.openModal({
+                        title: "Success!",
+                        text: "MP3 download complete"
+                    });
                 });
-                vid.on("error", err => console.error(err));
             }
         },
         savePath: function () {
