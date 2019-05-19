@@ -124,7 +124,8 @@
 import Modal from "@/components/Modal.vue";
 import * as $ from "jquery";
 
-const google = window.electron.google;
+const electron = window.electron;
+const {google, init} = electron;
 
 export default {
 	name: "Youtube",
@@ -135,9 +136,8 @@ export default {
 	data: function() {
 		return {
 			videoList: [],
-			videoSearch:
-				"https://www.youtube.com/playlist?list=PLpqYk0rZC57pQiwfY76azyhe_k8f_EJU0",
-			path: "/home/andriy/Downloads",
+			videoSearch: init.videoSearch,
+			path: init.path,
 			downloadAll: "mp3"
 		};
 	},
