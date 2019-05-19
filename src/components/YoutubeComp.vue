@@ -50,16 +50,37 @@
 								aria-expanded="false"
 								:id="'btn' + video.title"
 								data-toggle="dropdown"
+								@click="getVideoDiskInfo(video.title)"
 							>Action</button>
 							<div class="dropdown-menu" :aria-labelledby="'btn' + video.title">
-								<a href="#" class="dropdown-item" v-on:click="downloadVideo(video.title)">Download mp4</a>
-								<a href="#" class="dropdown-item" v-on:click="downloadMusic(video.title)">Download mp3</a>
-								<a href="#" class="dropdown-item" v-on:click="removeVideo(video.title)">Delete from list</a>
-								<a href="#" class="dropdown-item" v-on:click="removeAll(video.title)">Delete from list and disk</a>
+								<a class="dropdown-item" v-on:click="downloadVideo(video.title)">
+									<span v-if="!video.diskInfo.mp4">Download mp4</span>
+									<span v-if="video.diskInfo.mp4">mp4 downloaded</span>
+								</a>
+								<a class="dropdown-item" v-on:click="downloadMusic(video.title)">
+									<span v-if="!video.diskInfo.mp3">Download mp3</span>
+									<span v-if="video.diskInfo.mp3">mp3 downloaded</span>
+								</a>
+								<a class="dropdown-item" v-on:click="removeVideo(video.title)">Delete from list</a>
+								<a
+									class="dropdown-item"
+									v-bind:class="{'d-none': !video.diskInfo.mp4 && !video.diskInfo.mp3}"
+									v-on:click="removeAll(video.title)"
+								>Delete from list and disk</a>
 							</div>
 						</div>
 					</div>
 				</div>
+				<ul class="list-group list-group-flush">
+					<li class="list-group-item">
+						<span
+							v-if="!video.diskInfo.mp3 && !video.diskInfo.mp4"
+							class="badge badge-secondary"
+						>Not downloaded</span>
+						<span v-if="video.diskInfo.mp3" class="badge badge-success">mp3</span>
+						<span v-if="video.diskInfo.mp4" class="badge badge-success">mp4</span>
+					</li>
+				</ul>
 			</div>
 		</div>
 		<Modal ref="modal"/>
@@ -68,6 +89,7 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
+import * as $ from "jquery";
 
 const google = window.electron.google;
 
@@ -91,25 +113,28 @@ export default {
 				const url = new URL(this.videoSearch);
 				const list = url.searchParams.get("list");
 				if (list) {
-					window.electron.google
-					.getPlaylist(list)
-					.then(items => {
+					window.electron.google.getPlaylist(list).then(items => {
 						items.forEach(item => {
 							const video = this.getVideoByTitle(item.title);
 							if (!video) {
+								item.diskInfo = {};
 								this.videoList.unshift(item);
+								this.getVideoDiskInfo(item.title);
 							}
 						});
 					});
 				} else {
-					google.getBasicInfo({videoUrl: this.videoSearch})
-					.then(response => {
-						console.log(response);
-						const video = this.getVideoByTitle(response.title);
-						if (!video) {
-							this.videoList.unshift(response);
-						}
-					}).catch(console.error);
+					google
+						.getBasicInfo({ videoUrl: this.videoSearch })
+						.then(response => {
+							const video = this.getVideoByTitle(response.title);
+							if (!video) {
+								response.diskInfo = {};
+								this.videoList.unshift(response);
+								this.getVideoDiskInfo(response.title);
+							}
+						})
+						.catch(console.error);
 				}
 			}
 		},
@@ -121,47 +146,55 @@ export default {
 				this.videoList.splice(index, 1);
 			}
 		},
-		removeAll: function (title) {
-			google.removeVideosContent({
-				savePath: this.path,
-				videoTitles: [title],
-				fileTypes: [".mp3", ".mp4"]
-			}).then(response => this.removeVideo(title))
-			.catch(error => console.error);
+		removeAll: function(title) {
+			google
+				.removeVideosContent({
+					savePath: this.path,
+					videoTitles: [title],
+					fileTypes: [".mp3", ".mp4"]
+				})
+				.then(response => this.removeVideo(title))
+				.catch(error => console.error);
 		},
 		getVideoByTitle: function(title) {
 			return this.videoList.find(video => video.title === title);
 		},
 		downloadVideo: function(title) {
 			const video = this.getVideoByTitle(title);
-			if (video && video.video_url && this.path) {
-				google.downloadVideo({
-					savePath: this.path,
-					videoTitle: video.title,
-					videoUrl: video.video_url
-				})
-                .then(response => {
-                    this.$refs.modal.openModal({
-                        title: "Success!",
-                        text: "Video download complete"
-                    });
-                })
-                .catch(error => console.error(error));
+			if (video && video.video_url && this.path && !video.diskInfo.mp4) {
+				google
+					.downloadVideo({
+						savePath: this.path,
+						videoTitle: video.title,
+						videoUrl: video.video_url
+					})
+					.then(response => {
+						this.getVideoDiskInfo(title);
+						this.$refs.modal.openModal({
+							title: "Success!",
+							text: "Video download complete"
+						});
+					})
+					.catch(error => console.error(error));
 			}
 		},
 		downloadMusic: function(title) {
 			const video = this.getVideoByTitle(title);
-			if (video && video.video_url && this.path) {
-				google.downloadMusic({
-					savePath: this.path,
-					videoTitle: video.title,
-					videoUrl: video.video_url
-				}).then(() => {
-					this.$refs.modal.openModal({
-						title: "Success!",
-						text: "MP3 download complete"
-					});
-				}).catch(console.error);
+			if (video && video.video_url && this.path && !video.diskInfo.mp3) {
+				google
+					.downloadMusic({
+						savePath: this.path,
+						videoTitle: video.title,
+						videoUrl: video.video_url
+					})
+					.then(() => {
+						this.getVideoDiskInfo(title);
+						this.$refs.modal.openModal({
+							title: "Success!",
+							text: "MP3 download complete"
+						});
+					})
+					.catch(console.error);
 			}
 		},
 		savePath: function() {
@@ -171,6 +204,29 @@ export default {
 			if (paths && paths.length === 1) {
 				this.path = paths[0];
 			}
+		},
+		getVideoDiskInfo: function(title) {
+			const video = this.getVideoByTitle(title);
+			if (!video) {
+				console.error(`No video found for title: ${title}`);
+				return;
+			}
+			google
+				.getItemDiskInformation({
+					title: title,
+					filePath: this.path,
+					fileTypes: [".mp3", ".mp4"]
+				})
+				.then(info => {
+					if (info[".mp3"]) {
+						video.diskInfo.mp3 = true;
+					}
+					if (info[".mp4"]) {
+						video.diskInfo.mp4 = true;
+					}
+					this.$forceUpdate();
+				})
+				.catch(console.error);
 		}
 	}
 };
