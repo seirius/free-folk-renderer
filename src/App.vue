@@ -18,6 +18,7 @@
                 <li class="nav-item">
                     <a class="nav-link">
                         <router-link to="/">Youtube</router-link>
+                        <router-link to="/converter">Converter</router-link>
                     </a>
                 </li>
             </ul>
