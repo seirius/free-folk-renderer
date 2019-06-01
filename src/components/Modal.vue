@@ -31,8 +31,8 @@ import * as $ from "jquery";
 export default {
 	name: "Modal",
 	props: {
-        inpText: "",
-        inpTitle: ""
+        inpText: String,
+        inpTitle: String
     },
 	data: function() {
 		return {

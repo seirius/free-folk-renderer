@@ -11,7 +11,12 @@ export default new Router({
       // route level code-splitting
       // this generates a separate chunk (about.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import(/* webpackChunkName: "about" */ './views/Youtube.vue')
+      component: () => import(/* webpackChunkName: "youtube" */ './views/Youtube.vue')
+    },
+    {
+      path: "/converter",
+      name: "converter",
+      component: () => import(/* webpackChunkName: "converter" */ './views/Converter.vue')
     }
   ]
 })
