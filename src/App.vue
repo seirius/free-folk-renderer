@@ -29,7 +29,9 @@
         </div>
     </nav>
     <div class="container">
-        <router-view />
+        <keep-alive>
+            <router-view />
+        </keep-alive>
     </div>
 </div>
 </template>
