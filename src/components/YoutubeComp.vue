@@ -45,7 +45,7 @@
 			</div>
 		</form>
 		<div class="row">
-			<div class="col-12 col-sm-6 col-md-4 col-lg-2" v-for="video in videoList" :key="video.title">
+			<div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="video in videoList" :key="video.title">
 				<div class="card video">
 					<img class="card-img-top" :src="video.thumbnail_url" alt="Card image cap">
 					<div class="card-body">
@@ -143,16 +143,22 @@ export default {
 	},
 	mounted: function() {
 		config.getUserConfig()
-		.then(config => {
-			this.path = config.setPath;
-			this.videoSearch = config.videoSearch;
+		.then(userConfig => {
+			this.path = userConfig.setPath;
+            this.videoSearch = userConfig.videoUrl;
+            this.videoList = userConfig.videoList;
+            if (this.videoList) {
+                this.videoList.forEach(video => this.getVideoDiskInfo(video.title));
+            }
 		}).catch(console.error);
 	},
 	methods: {
 		searchVideo: function() {
 			if (this.videoSearch) {
-				config.userConfig.videoUrl = this.videoSearch;
-				config.saveCurrentUserConfig();
+                config.getUserConfig().then(userConfig => {
+                    userConfig.videoUrl = this.videoSearch;
+                    config.saveCurrentUserConfig();
+                });
 				const url = new URL(this.videoSearch);
 				const list = url.searchParams.get("list");
 				if (list) {
@@ -168,7 +174,11 @@ export default {
 								this.videoList.unshift(item);
 								this.getVideoDiskInfo(item.title);
 							}
-						});
+                        });
+                        config.getUserConfig().then(userConfig => {
+                            userConfig.videoList = this.videoList;
+                            config.saveCurrentUserConfig();
+                        });
 					});
 				} else {
 					google
@@ -182,7 +192,11 @@ export default {
 									downloading: false
 								};
 								this.videoList.unshift(response);
-								this.getVideoDiskInfo(response.title);
+                                this.getVideoDiskInfo(response.title);
+                                config.getUserConfig().then(userConfig => {
+                                    userConfig.videoList = this.videoList;
+                                    config.saveCurrentUserConfig();
+                                });
 							}
 						})
 						.catch(console.error);
@@ -221,7 +235,11 @@ export default {
 				video => video.title === title
 			);
 			if (index > -1) {
-				this.videoList.splice(index, 1);
+                this.videoList.splice(index, 1);
+                config.getUserConfig().then(userConfig => {
+                    userConfig.videoList = this.videoList;
+                    config.saveCurrentUserConfig();
+                });
 			}
 		},
 		removeFromDisk: function(title) {
@@ -343,9 +361,11 @@ export default {
 				properties: ["openDirectory"]
 			});
 			if (paths && paths.length === 1) {
-				this.path = paths[0];
-				config.userConfig.setPath = this.path;
-				config.saveCurrentUserConfig();
+                this.path = paths[0];
+                config.getUserConfig().then(userConfig => {
+                    userConfig.setPath = this.path;
+                    config.saveCurrentUserConfig();
+                });
 			}
 		},
 		getVideoDiskInfo: function(title) {
