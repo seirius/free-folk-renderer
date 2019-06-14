@@ -29,7 +29,7 @@
 						<option
 							v-for="format in formats"
 							:key="format.type"
-							:value="format.type"
+							:value="format"
 						>{{format.description}} ({{format.type}})</option>
 					</select>
 				</div>
@@ -102,6 +102,9 @@ export default {
 					this.formats = Object.keys(formats).map(key => {
 						const format = formats[key];
 						format.type = key;
+						if (format.type === "matroska") {
+							format.extension = "mkv";
+						}
 						return format;
 					});
 				}
@@ -128,10 +131,13 @@ export default {
 		outputFilePathCheck: function() {
 			if (!this.outputFileSet && this.chosenFormat) {
 				const extname = electron.path.extname(this.inputFile);
-				if (extname) {
+				if (extname && this.chosenFormat) {
+					let extension = this.chosenFormat.type;
+					if (this.chosenFormat.extension) {
+						extension = this.chosenFormat.extension;
+					}
 					this.outputFile = this.inputFile.replace(
-						extname,
-						`.${this.chosenFormat}`
+						extname, `.${extension}`
 					);
 				}
 			}

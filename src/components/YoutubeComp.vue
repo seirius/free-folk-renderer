@@ -125,7 +125,7 @@ import Modal from "@/components/Modal.vue";
 import * as $ from "jquery";
 
 const electron = window.electron;
-const {google, init} = electron;
+const {google, init, config} = electron;
 
 export default {
 	name: "Youtube",
@@ -136,19 +136,27 @@ export default {
 	data: function() {
 		return {
 			videoList: [],
-			videoSearch: init.videoSearch,
-			path: init.path,
+			videoSearch: "",
+			path: "",
 			downloadAll: "mp3"
 		};
 	},
-	mounted: function() {},
+	mounted: function() {
+		config.getUserConfig()
+		.then(config => {
+			this.path = config.setPath;
+			this.videoSearch = config.videoSearch;
+		}).catch(console.error);
+	},
 	methods: {
 		searchVideo: function() {
 			if (this.videoSearch) {
+				config.userConfig.videoUrl = this.videoSearch;
+				config.saveCurrentUserConfig();
 				const url = new URL(this.videoSearch);
 				const list = url.searchParams.get("list");
 				if (list) {
-					window.electron.google.getPlaylist(list).then(items => {
+					google.getPlaylist(list).then(items => {
 						items.forEach(item => {
 							const video = this.getVideoByTitle(item.title);
 							if (!video) {
@@ -164,7 +172,7 @@ export default {
 					});
 				} else {
 					google
-						.getBasicInfo({ videoUrl: this.videoSearch })
+						.getVideoInfo({ videoUrl: this.videoSearch })
 						.then(response => {
 							const video = this.getVideoByTitle(response.title);
 							if (!video) {
@@ -336,6 +344,8 @@ export default {
 			});
 			if (paths && paths.length === 1) {
 				this.path = paths[0];
+				config.userConfig.setPath = this.path;
+				config.saveCurrentUserConfig();
 			}
 		},
 		getVideoDiskInfo: function(title) {
