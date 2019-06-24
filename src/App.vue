@@ -25,6 +25,11 @@
                         <router-link to="/converter">Converter</router-link>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link">
+                        <router-link to="/torrent">Torrent</router-link>
+                    </a>
+                </li>
             </ul>
         </div>
     </nav>

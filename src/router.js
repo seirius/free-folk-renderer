@@ -17,6 +17,11 @@ export default new Router({
       path: "/converter",
       name: "converter",
       component: () => import(/* webpackChunkName: "converter" */ './views/Converter.vue')
+    },
+    {
+      path: "/torrent",
+      name: "torrent",
+      component: () => import(/* webpackChunkName: "converter" */ './views/Torrent.vue')
     }
   ]
 })
