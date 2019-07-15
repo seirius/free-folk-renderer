@@ -42,8 +42,11 @@
 						<option value="mp4">mp4</option>
 					</select>
 				</div>
+                <div class="input-group mb-3 col-lg">
+                    <button type="button" @click="clearAll" class="btn btn-block btn-outline-danger">Clear all</button>
+                </div>
 			</div>
-		</form>
+		</form> 
 		<div class="row">
 			<div class="col-12 col-sm-6 col-md-4 col-lg-3" v-for="video in videoList" :key="video.title">
 				<div class="card video">
@@ -202,7 +205,13 @@ export default {
 						.catch(console.error);
 				}
 			}
-		},
+        },
+        clearAll: async function () {
+            const userConfig = await config.getUserConfig();
+            this.videoList = [];
+            userConfig.videoList = this.videoList;
+            config.saveCurrentUserConfig();
+        },
 		downloadAllItems: async function() {
 			if (this.videoList) {
 				if (this.downloadAll === "mp4") {

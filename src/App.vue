@@ -1,6 +1,6 @@
 <template>
-<div id="app">
-    <nav id="nav" class="navbar navbar-expand-lg navbar-light bg-light">
+    <div id="app">
+        <!-- <nav id="nav" class="navbar navbar-expand-lg navbar-light bg-light">
         <a class="navbar-brand" href="#">FreeFolk</a>
         <button
         class="navbar-toggler"
@@ -37,17 +37,46 @@
         <keep-alive>
             <router-view />
         </keep-alive>
+        </div>-->
+        <div class="ff-bar">
+            <div class="ff-logo">
+                <img src="./assets/logo.png" alt="">
+            </div>
+        </div>
+        <keep-alive>
+            <router-view/>
+        </keep-alive>
     </div>
-</div>
 </template>
 
 <style>
+.ff-logo {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
+}
+.ff-logo img {
+    height: 20px;
+}
+.ff-bar {
+    background-color: #212121;
+    max-height: 30px;
+    display: flex;
+    align-items: center;
+    -webkit-app-region: drag;
+}
 #nav {
     margin-bottom: 20px;
 }
 #app {
-    font-family: 'Roboto', sans-serif;
+    font-family: "Roboto", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+body {
+    background-color: #303030;
+    color: white;
 }
 </style>
