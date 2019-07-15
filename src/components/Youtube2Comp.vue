@@ -1,4 +1,5 @@
 <template>
+    <v-icon>android</v-icon>
 </template>
 
 <script>
