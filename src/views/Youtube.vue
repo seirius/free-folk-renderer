@@ -1,17 +1,17 @@
 <template>
   <div class="home">
-    <YoutubeComp/>
+    <Youtube/>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import YoutubeComp from '@/components/YoutubeComp.vue'
+import Youtube from '@/components/youtube/Youtube.vue'
 
 export default {
   name: 'youtube',
   components: {
-    YoutubeComp
+    Youtube
   }
 }
 </script>
