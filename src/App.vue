@@ -1,64 +1,66 @@
 <template>
-  <v-app dark>
-    <v-toolbar app>
-      <v-toolbar-title class="headline text-uppercase">
-        <div class="ff-bar">
-            <div class="ff-logo">
-                <img src="./assets/logo.png" alt="">
-            </div>
-        </div>
-        <!-- <span>Vuetify</span>
-        <span class="font-weight-light">MATERIAL DESIGN</span> -->
-      </v-toolbar-title>
-      <v-spacer></v-spacer>
-      <!-- <v-btn
-        flat
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-      >
-        <span class="mr-2">Latest Release</span>
-      </v-btn> -->
-    </v-toolbar>
-
-    <v-content>
-      <HelloWorld/>
-    </v-content>
-  </v-app>
+    <router-view></router-view>
 </template>
 
-<style lang="scss" scoped>
-.ff-logo {
-    width: 30px;
-    height: 30px;
-    margin-left: 5px;
-    display: flex;
-    align-items: center;
-    img {
-        height: 20px;
-    }
+<style>
+html {
+    overflow: hidden;
 }
-.ff-bar {
-    background-color: #212121;
-    max-height: 30px;
-    display: flex;
-    align-items: center;
-    -webkit-app-region: drag;
+.ff-navigation {
+    margin-top: 32px !important;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-button {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #e1e1e1;
+  border: 0px none #ffffff;
+  border-radius: 50px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
+}
+::-webkit-scrollbar-thumb:active {
+  background: #000000;
+}
+::-webkit-scrollbar-track {
+  background: #666666;
+  border: 0px none #ffffff;
+  border-radius: 21px;
+}
+::-webkit-scrollbar-track:hover {
+  background: #666666;
+}
+::-webkit-scrollbar-track:active {
+  background: #333333;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 </style>
 
 
-<script>
-import HelloWorld from './components/HelloWorld'
+<style lang="scss" scoped>
+</style>
 
+
+<script>
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  },
-  data () {
-    return {
-      //
+    name: "App",
+    components: {
+    },
+    data() {
+        return {
+        };
+    },
+    mounted: function() {
+    },
+    methods: {
     }
-  }
-}
+};
 </script>
