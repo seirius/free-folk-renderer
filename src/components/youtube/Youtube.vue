@@ -7,6 +7,13 @@
                     <v-icon large>dehaze</v-icon>
                 </v-btn>
             </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn icon @click="openSearch">
+                <v-icon>search</v-icon>
+            </v-btn>
+            <v-btn icon @click="clearVideoList">
+                <v-icon>clear_all</v-icon>
+            </v-btn>
         </v-toolbar>
 
         <v-navigation-drawer class="ff-navigation" v-model="navigation" app dark>
@@ -24,15 +31,6 @@
 
             <v-list two-line dark dense>
                 <v-divider></v-divider>
-                <v-list-tile @click="openSearch">
-                    <v-list-tile-avatar>
-                        <v-icon>search</v-icon>
-                    </v-list-tile-avatar>
-
-                    <v-list-tile-content>
-                        <v-list-tile-title>Search</v-list-tile-title>
-                    </v-list-tile-content>
-                </v-list-tile>
                 <v-list-tile @click="setDownloadDirectory">
                     <v-list-tile-avatar>
                         <v-icon>folder</v-icon>
@@ -43,18 +41,8 @@
                         <v-list-tile-sub-title>{{ downloadDirectory }}</v-list-tile-sub-title>
                     </v-list-tile-content>
                 </v-list-tile>
-                <v-list-tile @click="clearVideoList">
-                    <v-list-tile-avatar>
-                        <v-icon>clear_all</v-icon>
-                    </v-list-tile-avatar>
-
-                    <v-list-tile-content>
-                        <v-list-tile-title>Clear all</v-list-tile-title>
-                    </v-list-tile-content>
-                </v-list-tile>
-                <v-list-group
-                    no-action
-                >
+                <v-divider></v-divider>
+                <v-list-group no-action>
                     <template v-slot:activator>
                         <v-list-tile>
                             <v-list-tile-action>
@@ -115,7 +103,7 @@
                 <div class="content">
                     <v-container fluid grid-list-md>
                         <v-layout row wrap>
-                            <v-flex lg2 md4 xs12 v-for="item in videoList" :key="item.title">
+                            <v-flex lg2 md3 xs12 v-for="item in videoList" :key="item.title">
                                 <VideoItem
                                     @remove="removeVideoItem"
                                     @videoClick="videoClick(item)"
@@ -162,7 +150,7 @@
                         <v-flex
                             class="preview-video-item"
                             lg2
-                            md4
+                            md3
                             xs12
                             v-for="item in tempVideos"
                             :key="item.title"
@@ -178,6 +166,24 @@
                 </v-container>
             </div>
         </v-bottom-sheet>
+
+        <v-dialog v-model="downloadSetting" width="500" dark persistent>
+            <v-card>
+                <v-card-title class="headline" primary-title>Add download directory</v-card-title>
+
+                <v-card-text>
+                    The download directory is where you are going to store all the content.
+                    You will be able to change this afterwards.
+                </v-card-text>
+
+                <v-divider></v-divider>
+
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="obligatorySetDwnDir">Add directory</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </v-app>
 </template>
 
@@ -256,6 +262,7 @@ import SystemBar from "@/components/common/SystemBar.vue";
 import Loader from "@/components/common/Loader.vue";
 import Feedback from "@/components/common/Feedback.vue";
 const { WINDOW_MANAGER, dialog, config, google } = window.electron;
+const { YOUTUBE } = google;
 
 export default {
     name: "Youtube",
@@ -275,7 +282,8 @@ export default {
             videoList: [],
             videoSheet: false,
             tempVideos: [],
-            expandPreview: false
+            expandPreview: false,
+            downloadSetting: false
         };
     },
     methods: {
@@ -294,17 +302,36 @@ export default {
         toggleExpandedPreview: function() {
             this.expandPreview = !this.expandPreview;
         },
-        setDownloadDirectory: function() {
-            const paths = dialog.showOpenDialog({
-                properties: ["openDirectory"]
-            });
-            if (paths && paths.length === 1) {
-                this.downloadDirectory = paths[0];
-                config.getUserConfig().then(userConfig => {
-                    userConfig.setPath = this.downloadDirectory;
-                    config.saveCurrentUserConfig();
+        obligatorySetDwnDir: function () {
+            this.setDownloadDirectory().then(() => {
+                this.downloadSetting = false;
+                if (this.videoList.length === 0) {
+                    this.openSearch();
+                }
+            })
+            .catch(err => {
+                this.$refs.feedback.open({
+                    color: "error",
+                    text: `You must set a download directory`
                 });
-            }
+            });
+        },
+        setDownloadDirectory: function() {
+            return new Promise((resolve, reject) => {
+                const paths = dialog.showOpenDialog({
+                    properties: ["openDirectory"]
+                });
+                if (paths && paths.length === 1) {
+                    this.downloadDirectory = paths[0];
+                    resolve();
+                    config.getUserConfig().then(userConfig => {
+                        userConfig.setPath = this.downloadDirectory;
+                        config.saveCurrentUserConfig();
+                    });
+                } else {
+                    reject("Path not selected");
+                }
+            });
         },
         openSearch: function() {
             this.searchDialog = true;
@@ -353,7 +380,7 @@ export default {
                     const v = url.searchParams.get("v");
 
                     if (list) {
-                        google.getPlaylist(list).then(items => {
+                        YOUTUBE.getPlaylist({ id: list }).then(items => {
                             this.tempVideos = [];
                             items.forEach(item => {
                                 this.getVideoDiskInfo(item).then(diskInfo =>
@@ -363,8 +390,7 @@ export default {
                             result();
                         });
                     } else if (v) {
-                        google
-                            .getVideoInfo({ videoUrl: this.searchUrl })
+                        YOUTUBE.getVideosInfo({ ids: v })
                             .then(response => {
                                 this.tempVideos = [];
                                 this.getVideoDiskInfo(response).then(diskInfo =>
@@ -374,8 +400,8 @@ export default {
                             })
                             .catch(console.error);
                     }
-                } catch(error) {
-                    google.searchByText(this.searchUrl).then(items => {
+                } catch (error) {
+                    YOUTUBE.getByText({ text: this.searchUrl }).then(items => {
                         this.tempVideos = [];
                         items.forEach(item => {
                             this.getVideoDiskInfo(item).then(diskInfo =>
@@ -427,7 +453,7 @@ export default {
                 });
             }
         },
-        clearVideoList: function () {
+        clearVideoList: function() {
             this.videoList = [];
             config.getUserConfig().then(userConfig => {
                 userConfig.videoList = this.videoList;
@@ -441,19 +467,25 @@ export default {
             }
             this.downloadVideo(video, noFeedback);
         },
-        musicClick: function (video) {
+        musicClick: function(video) {
             this.getVideoDiskInfo(video).then(diskInfo => {
                 if (diskInfo.mp3) {
-                    window.open(`#/video/${diskInfo.safeTitle}.mp3/mp3`, "video");
+                    window.open(
+                        `#/video/${diskInfo.safeTitle}.mp3/mp3`,
+                        "video"
+                    );
                 } else {
                     this.downloadMusic(video);
                 }
             });
         },
-        videoClick: function (video) {
+        videoClick: function(video) {
             this.getVideoDiskInfo(video).then(diskInfo => {
                 if (diskInfo.mp4) {
-                    window.open(`#/video/${diskInfo.safeTitle}.mp4/mp4`, "video");
+                    window.open(
+                        `#/video/${diskInfo.safeTitle}.mp4/mp4`,
+                        "video"
+                    );
                 } else {
                     this.downloadVideo(video);
                 }
@@ -595,7 +627,7 @@ export default {
                 }
             });
         },
-        downloadAllVideo: function () {
+        downloadAllVideo: function() {
             const promises = [];
             this.videoList.forEach(video => {
                 promises.push(this.downloadVideo(video, true));
@@ -607,7 +639,7 @@ export default {
                 });
             });
         },
-        downloadAllMusic: function () {
+        downloadAllMusic: function() {
             const promises = [];
             this.videoList.forEach(video => {
                 promises.push(this.downloadMusic(video, true));
@@ -641,8 +673,11 @@ export default {
             .getUserConfig()
             .then(userConfig => {
                 this.downloadDirectory = userConfig.setPath;
+                if (!this.downloadDirectory) {
+                    this.downloadSetting = true;
+                }
                 this.videoList = userConfig.videoList;
-                if (!this.videoList || !this.videoList.length) {
+                if ((!this.videoList || !this.videoList.length) && this.downloadDirectory) {
                     this.openSearch();
                 } else if (this.videoList) {
                     const promises = [];

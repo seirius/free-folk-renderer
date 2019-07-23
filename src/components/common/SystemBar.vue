@@ -1,10 +1,11 @@
 <template>
-    <v-system-bar class="ff-system-bar" app window dark>
+    <v-system-bar class="ff-system-bar unselectable" app window dark>
         <div class="ff-bar">
             <div class="ff-logo">
-                <img src="./../../assets/logo.png" alt />
+                <img src="./../../assets/logo.png" class="undraggable" alt />
             </div>
         </div>
+        <div class="ff-title"> Free Folk </div>
         <v-spacer></v-spacer>
         <div class="draggable"></div>
         <v-btn @click="min" class="ff-button" dark depressed flat small>
@@ -19,6 +20,10 @@
 <style lang="scss" scoped>
 .ff-system-bar {
     padding: 0px;
+    .ff-title {
+        min-width: 100px;
+        padding: 0px 8px;
+    }
     .ff-button {
         margin: 0px;
         height: 100%;

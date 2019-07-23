@@ -1,10 +1,13 @@
 <template>
-    <v-card>
-        <v-img :src="videoItem.thumbnail_url" height="200px">
-            <v-container fill-height fluid pa-2>
-                <v-layout fill-height>
+    <v-card class="elevation-4">
+        <v-img :src="videoItem.thumbnail_url" height="150px">
+            <v-container class="ff-video-img" fill-height fluid pa-2>
+                <v-layout fill-height row wrap>
                     <v-flex xs12 align-end flexbox>
-                        <span class="headline white--text" v-text="videoItem.title"></span>
+                        <span class="white--text subheading" v-text="videoItem.title"></span>
+                    </v-flex>
+                    <v-flex xs12 align-self-end flexbox class="text-right">
+                        <span class="white--text subheading" v-text="videoItem.duration"></span>
                     </v-flex>
                 </v-layout>
             </v-container>
@@ -35,6 +38,9 @@
 </template>
 
 <style lang="scss" scoped>
+.ff-video-img {
+    background-color: rgba(0, 0, 0, 0.3);
+}
 </style>
 
 
@@ -49,6 +55,7 @@ export default {
             title: String,
             video_url: String,
             thumbnail_url: String,
+            duration: String,
             diskInfo: {
                 mp3: Boolean,
                 mp4: Boolean
@@ -89,6 +96,7 @@ export default {
     watch: {
     },
     mounted: function() {
+        console.log(this.videoItem);
     }
 };
 </script>

@@ -42,6 +42,15 @@ html {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+.unselectable {
+    user-select: none;
+}
+.undraggable {
+    -webkit-user-drag: none;
+}
+.text-right {
+    text-align: right;
+}
 </style>
 
 
