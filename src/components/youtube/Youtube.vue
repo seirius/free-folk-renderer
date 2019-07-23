@@ -183,7 +183,7 @@
 
 <style lang="scss">
 .v-bottom-sheet.v-dialog {
-    overflow: auto;
+    overflow: auto !important;
 }
 html {
     overflow: hidden;
