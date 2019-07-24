@@ -54,7 +54,7 @@
 </style>
 
 <script>
-const { WINDOW_MANAGER } = window.electron;
+const WINDOW_MANAGER = window.electron ? window.electron.WINDOW_MANAGER : null;
 
 export default {
     name: "SystemBar",

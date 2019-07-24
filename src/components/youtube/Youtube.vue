@@ -1,6 +1,6 @@
 <template>
     <v-app dark>
-        <SystemBar />
+        <SystemBar v-if="isElectron" />
         <v-toolbar class="ff-toolbar" app>
             <v-toolbar-title class="headline">
                 <v-btn icon @click="navigation = !navigation">
@@ -16,7 +16,13 @@
             </v-btn>
         </v-toolbar>
 
-        <v-navigation-drawer class="ff-navigation" v-model="navigation" app dark>
+        <v-navigation-drawer
+            class="ff-navigation"
+            v-bind:class="{electron: isElectron}"
+            v-model="navigation"
+            app
+            dark
+        >
             <v-list class="pa-3" dark>
                 <v-list-tile avatar>
                     <v-list-tile-content>
@@ -261,8 +267,9 @@ import VideoItem from "@/components/youtube/VideoItem.vue";
 import SystemBar from "@/components/common/SystemBar.vue";
 import Loader from "@/components/common/Loader.vue";
 import Feedback from "@/components/common/Feedback.vue";
-const { WINDOW_MANAGER, dialog, config, google } = window.electron;
-const { YOUTUBE } = google;
+const dialog = window.electron ? window.electron.dialog : null;
+import { YT_SERVICE } from "./youtube-service";
+import { CONFIG_SERVICE } from "./../config-service";
 
 export default {
     name: "Youtube",
@@ -275,6 +282,7 @@ export default {
     props: {},
     data() {
         return {
+            isElectron: false,
             navigation: false,
             downloadDirectory: "",
             searchDialog: false,
@@ -302,19 +310,20 @@ export default {
         toggleExpandedPreview: function() {
             this.expandPreview = !this.expandPreview;
         },
-        obligatorySetDwnDir: function () {
-            this.setDownloadDirectory().then(() => {
-                this.downloadSetting = false;
-                if (this.videoList.length === 0) {
-                    this.openSearch();
-                }
-            })
-            .catch(err => {
-                this.$refs.feedback.open({
-                    color: "error",
-                    text: `You must set a download directory`
+        obligatorySetDwnDir: function() {
+            this.setDownloadDirectory()
+                .then(() => {
+                    this.downloadSetting = false;
+                    if (this.videoList.length === 0) {
+                        this.openSearch();
+                    }
+                })
+                .catch(err => {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `You must set a download directory`
+                    });
                 });
-            });
         },
         setDownloadDirectory: function() {
             return new Promise((resolve, reject) => {
@@ -324,9 +333,9 @@ export default {
                 if (paths && paths.length === 1) {
                     this.downloadDirectory = paths[0];
                     resolve();
-                    config.getUserConfig().then(userConfig => {
+                    CONFIG_SERVICE.getUserConfig().then(userConfig => {
                         userConfig.setPath = this.downloadDirectory;
-                        config.saveCurrentUserConfig();
+                        CONFIG_SERVICE.saveUserConfig(userConfig);
                     });
                 } else {
                     reject("Path not selected");
@@ -345,12 +354,11 @@ export default {
         },
         getVideoDiskInfo: function(video) {
             return new Promise((resolve, reject) => {
-                google
-                    .getItemDiskInformation({
-                        title: video.title,
-                        filePath: this.downloadDirectory,
-                        fileTypes: [".mp3", ".mp4"]
-                    })
+                YT_SERVICE.getItemDiskInformation({
+                    title: video.title,
+                    filePath: this.downloadDirectory,
+                    fileTypes: [".mp3", ".mp4"]
+                })
                     .then(info => {
                         resolve({
                             mp3: !!info[".mp3"],
@@ -380,36 +388,52 @@ export default {
                     const v = url.searchParams.get("v");
 
                     if (list) {
-                        YOUTUBE.getPlaylist({ id: list }).then(items => {
+                        YT_SERVICE.getPlaylist({ id: list }).then(items => {
                             this.tempVideos = [];
                             items.forEach(item => {
-                                this.getVideoDiskInfo(item).then(diskInfo =>
-                                    resolveItem(item, diskInfo)
-                                );
+                                if (this.isElectron) {
+                                    this.getVideoDiskInfo(item).then(diskInfo =>
+                                        resolveItem(item, diskInfo)
+                                    );
+                                } else {
+                                    resolveItem(item, initDiskInfo());
+                                }
                             });
                             result();
                         });
                     } else if (v) {
-                        YOUTUBE.getVideosInfo({ ids: v })
+                        YT_SERVICE.getVideosInfo({ ids: v })
                             .then(response => {
                                 this.tempVideos = [];
-                                this.getVideoDiskInfo(response).then(diskInfo =>
-                                    resolveItem(response, diskInfo)
-                                );
+                                if (this.isElectron) {
+                                    this.getVideoDiskInfo(response).then(
+                                        diskInfo =>
+                                            resolveItem(response, diskInfo)
+                                    );
+                                } else {
+                                    resolveItem(response, initDiskInfo());
+                                }
+
                                 result();
                             })
                             .catch(console.error);
                     }
                 } catch (error) {
-                    YOUTUBE.getByText({ text: this.searchUrl }).then(items => {
-                        this.tempVideos = [];
-                        items.forEach(item => {
-                            this.getVideoDiskInfo(item).then(diskInfo =>
-                                resolveItem(item, diskInfo)
-                            );
-                        });
-                        result();
-                    });
+                    YT_SERVICE.getByText({ text: this.searchUrl }).then(
+                        items => {
+                            this.tempVideos = [];
+                            items.forEach(item => {
+                                if (this.isElectron) {
+                                    this.getVideoDiskInfo(item).then(diskInfo =>
+                                        resolveItem(item, diskInfo)
+                                    );
+                                } else {
+                                    resolveItem(item, initDiskInfo());
+                                }
+                            });
+                            result();
+                        }
+                    );
                 }
             }
         },
@@ -437,9 +461,9 @@ export default {
                         this.videoList.unshift(video);
                     }
                 });
-                config.getUserConfig().then(userConfig => {
+                CONFIG_SERVICE.getUserConfig().then(userConfig => {
                     userConfig.videoList = this.videoList;
-                    config.saveCurrentUserConfig();
+                    CONFIG_SERVICE.saveUserConfig(userConfig);
                 });
             }
         },
@@ -447,17 +471,17 @@ export default {
             const videoListIndex = this.videoList.indexOf(item);
             if (videoListIndex > -1) {
                 this.videoList.splice(videoListIndex, 1);
-                config.getUserConfig().then(userConfig => {
+                CONFIG_SERVICE.getUserConfig().then(userConfig => {
                     userConfig.videoList = this.videoList;
-                    config.saveCurrentUserConfig();
+                    CONFIG_SERVICE.saveCurrentUserConfig();
                 });
             }
         },
         clearVideoList: function() {
             this.videoList = [];
-            config.getUserConfig().then(userConfig => {
+            CONFIG_SERVICE.getUserConfig().then(userConfig => {
                 userConfig.videoList = this.videoList;
-                config.saveCurrentUserConfig();
+                CONFIG_SERVICE.saveUserConfig(userConfig);
             });
         },
         downloadVideoFromPreview: function(video, noFeedback) {
@@ -480,23 +504,27 @@ export default {
             });
         },
         videoClick: function(video) {
-            this.getVideoDiskInfo(video).then(diskInfo => {
-                if (diskInfo.mp4) {
-                    window.open(
-                        `#/video/${diskInfo.safeTitle}.mp4/mp4`,
-                        "video"
-                    );
-                } else {
-                    this.downloadVideo(video);
-                }
-            });
+            if (this.isElectron) {
+                this.getVideoDiskInfo(video).then(diskInfo => {
+                    if (diskInfo.mp4) {
+                        window.open(
+                            `#/video/${diskInfo.safeTitle}.mp4/mp4`,
+                            "video"
+                        );
+                    } else {
+                        this.downloadVideo(video);
+                    }
+                });
+            } else {
+                this.downloadVideo(video);
+            }
         },
         downloadVideo: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
                 if (
                     video &&
                     video.video_url &&
-                    this.downloadDirectory &&
+                    (this.downloadDirectory || !this.isElectron) &&
                     !video.diskInfo.mp4
                 ) {
                     video.dwnProgress.downloading = true;
@@ -505,26 +533,29 @@ export default {
                         loading: true,
                         progress: 0
                     };
-                    google
-                        .downloadVideo({
-                            savePath: this.downloadDirectory,
-                            videoTitle: video.title,
-                            videoUrl: video.video_url,
-                            downloadProgressCallback: callbackArgs => {
-                                const {
-                                    contentLength,
-                                    progress
-                                } = callbackArgs;
-                                video.dwnProgress.progress = Math.trunc(
-                                    progress
-                                );
-                                video.dwnProgress.video.progress = Math.trunc(
-                                    progress
-                                );
-                                this.$forceUpdate();
-                            }
-                        })
+                    YT_SERVICE.downloadVideo({
+                        savePath: this.downloadDirectory,
+                        videoTitle: video.title,
+                        ids: [video.id],
+                        downloadProgressCallback: callbackArgs => {
+                            const { contentLength, progress } = callbackArgs;
+                            video.dwnProgress.progress = Math.trunc(progress);
+                            video.dwnProgress.video.progress = Math.trunc(
+                                progress
+                            );
+                            this.$forceUpdate();
+                        }
+                    })
                         .then(response => {
+                            if (!this.isElectron) {
+                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.setAttribute('download', response.filename); //or any other extension
+                                document.body.appendChild(link);
+                                link.click();
+                                document.removeChild(link);
+                            }
                             video.dwnProgress.progress = 0;
                             video.dwnProgress.downloading = false;
                             video.dwnProgress.video = {
@@ -574,30 +605,27 @@ export default {
                         loading: true,
                         progress: 0
                     };
-                    google
-                        .downloadMusic({
-                            savePath: this.downloadDirectory,
-                            videoTitle: video.title,
-                            videoUrl: video.video_url,
-                            downloadProgressCallback: callbackArgs => {
-                                const {
-                                    contentLength,
-                                    progress,
-                                    videoProgress,
-                                    musicProgress
-                                } = callbackArgs;
-                                video.dwnProgress.progress = Math.trunc(
-                                    progress
-                                );
-                                video.dwnProgress.video.progress = Math.trunc(
-                                    videoProgress
-                                );
-                                video.dwnProgress.music.progress = Math.trunc(
-                                    musicProgress
-                                );
-                                this.$forceUpdate();
-                            }
-                        })
+                    YT_SERVICE.downloadMusic({
+                        savePath: this.downloadDirectory,
+                        videoTitle: video.title,
+                        videoUrl: video.video_url,
+                        downloadProgressCallback: callbackArgs => {
+                            const {
+                                contentLength,
+                                progress,
+                                videoProgress,
+                                musicProgress
+                            } = callbackArgs;
+                            video.dwnProgress.progress = Math.trunc(progress);
+                            video.dwnProgress.video.progress = Math.trunc(
+                                videoProgress
+                            );
+                            video.dwnProgress.music.progress = Math.trunc(
+                                musicProgress
+                            );
+                            this.$forceUpdate();
+                        }
+                    })
                         .then(() => {
                             video.dwnProgress.progress = 0;
                             video.dwnProgress.downloading = false;
@@ -660,6 +688,7 @@ export default {
         }
     },
     mounted: function() {
+        this.isElectron = !!window.electron;
         window.addEventListener(
             "keyup",
             event => {
@@ -669,37 +698,48 @@ export default {
             },
             true
         );
-        config
-            .getUserConfig()
+        CONFIG_SERVICE.getUserConfig()
             .then(userConfig => {
-                this.downloadDirectory = userConfig.setPath;
-                if (!this.downloadDirectory) {
-                    this.downloadSetting = true;
-                }
-                this.videoList = userConfig.videoList;
-                if ((!this.videoList || !this.videoList.length) && this.downloadDirectory) {
-                    this.openSearch();
-                } else if (this.videoList) {
-                    const promises = [];
-                    this.$refs.loader.start();
-                    this.videoList.forEach(video => {
-                        video.dwnProgress = initProgress();
-                        const promise = this.getVideoDiskInfo(video);
-                        promises.push(promise);
-                        promise.then(diskInfo => {
-                            video.diskInfo = diskInfo;
-                        });
-                    });
+                if (userConfig) {
+                    this.videoList = userConfig.videoList;
 
-                    Promise.all(promises)
-                        .then(() => {
-                            this.$forceUpdate();
-                            this.$refs.loader.stop();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            this.$refs.loader.stop();
-                        });
+                    if (this.isElectron) {
+                        this.downloadDirectory = userConfig.setPath;
+                        if (!this.downloadDirectory) {
+                            this.downloadSetting = true;
+                        }
+                        if (
+                            (!this.videoList || !this.videoList.length) &&
+                            this.downloadDirectory
+                        ) {
+                            this.openSearch();
+                        } else if (this.videoList) {
+                            const promises = [];
+                            this.$refs.loader.start();
+                            this.videoList.forEach(video => {
+                                video.dwnProgress = initProgress();
+                                const promise = this.getVideoDiskInfo(video);
+                                promises.push(promise);
+                                promise.then(diskInfo => {
+                                    video.diskInfo = diskInfo;
+                                });
+                            });
+
+                            Promise.all(promises)
+                                .then(() => {
+                                    this.$forceUpdate();
+                                    this.$refs.loader.stop();
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                    this.$refs.loader.stop();
+                                });
+                        }
+                    } else {
+                        if (!this.videoList || !this.videoList.length) {
+                            this.openSearch();
+                        }
+                    }
                 }
             })
             .catch(console.error);
@@ -718,6 +758,13 @@ function initProgress() {
         },
         progress: 0,
         downloading: false
+    };
+}
+
+function initDiskInfo() {
+    return {
+        mp3: false,
+        mp4: false
     };
 }
 </script>

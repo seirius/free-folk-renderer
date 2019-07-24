@@ -45,8 +45,6 @@
 
 
 <script>
-const { WINDOW_MANAGER, dialog, config, google } = window.electron;
-
 export default {
     name: "VideoItem",
     components: {},
@@ -96,7 +94,6 @@ export default {
     watch: {
     },
     mounted: function() {
-        console.log(this.videoItem);
     }
 };
 </script>
