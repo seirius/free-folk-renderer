@@ -1,6 +1,5 @@
 const axios = require("axios");
 
-
 const YOUTUBE = {
     getByText: (args) => {
         return new Promise((resolve, reject) => {
@@ -57,12 +56,14 @@ const YOUTUBE = {
         return new Promise((resolve, reject) => {
             const { ids, mp3 } = args;
             if (ids) {
-                axios.post("/youtube/download", {ids, mp3})
+                axios.post("/youtube/download", {ids, mp3}, {
+                    responseType: "blob"
+                })
                 .then(response => {
                     if (response.status === 200) {
                         resolve({
                             data: response.data,
-                            filename: getFilename(response.headers["content-disposition"])
+                            filename: response.headers["x-suggested-filename"]
                         });
                     } else {
                         reject(response.data);
@@ -74,18 +75,6 @@ const YOUTUBE = {
         });
     }
 };
-
-function getFilename(disposition) {
-    let filename = "not_defined";
-    if (disposition && disposition.indexOf('inline') !== -1) {
-        let filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        let matches = filenameRegex.exec(disposition);
-        if (matches != null && matches[1]) { 
-          filename = matches[1].replace(/['"]/g, '');
-        }
-    }
-
-    return filename;
-}
+YOUTUBE.downloadMusic = YOUTUBE.downloadVideo;
 
 exports.YOUTUBE = YOUTUBE;
