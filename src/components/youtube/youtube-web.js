@@ -54,12 +54,22 @@ const YOUTUBE = {
     },
     downloadVideo: (args) => {
         return new Promise((resolve, reject) => {
-            const { ids, mp3 } = args;
-            if (ids) {
-                axios.post("/youtube/download", {ids, mp3}, {
-                    responseType: "blob"
-                })
-                .then(response => {
+            const { id, mp3, downloadProgressCallback } = args;
+            let progressFunction;
+            if (downloadProgressCallback) {
+                progressFunction = progress => {
+                    const contentLength = progress.target.getResponseHeader('content-length');
+                    downloadProgressCallback({
+                        progress: progress.loaded / contentLength * 100,
+                        contentLength
+                    });
+                };
+            }
+            if (id) {
+                axios.post("/youtube/download", {id, mp3}, {
+                    responseType: "blob",
+                    onDownloadProgress: progressFunction
+                }).then(response => {
                     if (response.status === 200) {
                         resolve({
                             data: response.data,

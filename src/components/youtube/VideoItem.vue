@@ -22,13 +22,21 @@
             </v-btn>
             <v-spacer></v-spacer>
             <v-btn icon @click="musicClick" v-bind:disabled="videoItem.dwnProgress.downloading">
-                <v-progress-circular v-if="videoItem.dwnProgress.music.loading" 
+                <v-progress-circular
+                indeterminate
+                v-if="videoItem.dwnProgress.music.indeterminate"
+                ></v-progress-circular>
+                <v-progress-circular v-if="videoItem.dwnProgress.music.loading && !videoItem.dwnProgress.music.indeterminate" 
                 v-bind:value="videoItem.dwnProgress.music.progress"></v-progress-circular>
                 <v-icon v-if="!videoItem.dwnProgress.music.loading"
                 v-bind:color="videoItem.diskInfo.mp3 ? 'success' : 'info'">music_video</v-icon>
             </v-btn>
             <v-btn icon @click="videoClick" v-bind:disabled="videoItem.dwnProgress.downloading">
-                <v-progress-circular v-if="videoItem.dwnProgress.video.loading" 
+                <v-progress-circular
+                indeterminate
+                v-if="videoItem.dwnProgress.video.indeterminate"
+                ></v-progress-circular>
+                <v-progress-circular v-if="videoItem.dwnProgress.video.loading && !videoItem.dwnProgress.video.indeterminate" 
                 v-bind:value="videoItem.dwnProgress.video.progress"></v-progress-circular>
                 <v-icon v-if="!videoItem.dwnProgress.video.loading" 
                 v-bind:color="videoItem.diskInfo.mp4 ? 'success' : 'info'">videocam</v-icon>
@@ -63,11 +71,13 @@ export default {
                 downloading: true,
                 video: {
                     progress: 0,
-                    loading: false
+                    loading: false,
+                    indeterminate: false
                 },
                 music: {
                     progress: 0,
-                    loading: false
+                    loading: false,
+                    indeterminate: false
                 }
             }
         },

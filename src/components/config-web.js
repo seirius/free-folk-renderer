@@ -1,14 +1,28 @@
+const axios = require("axios");
+
 const CONFIG = {
     getUserConfig: function () {
         return new Promise((resolve, reject) => {
-            resolve({
-                setPath: "",
-                videoList: []
-            });
+            axios.get("/config/user-config").then(response => {
+                if (response.status === 200) {
+                    resolve(response.data);
+                } else {
+                    reject(response.data);
+                }
+            }).catch(reject);
         });
     },
     saveUserConfig: function (userConfig) {
-        return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            axios.post("/config/user-config", {config: userConfig})
+            .then(response => {
+                if (response.status === 200) {
+                    resolve(response.data);
+                } else {
+                    reject(response.data);
+                }
+            }).catch(reject);
+        });
     }
 };
 

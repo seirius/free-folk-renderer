@@ -536,57 +536,71 @@ export default {
         },
         downloadVideo: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-                if (
-                    video &&
-                    video.video_url &&
-                    (this.downloadDirectory || !this.isElectron) &&
-                    !video.diskInfo.mp4
-                ) {
-                    video.dwnProgress.downloading = true;
-                    video.dwnProgress.progress = 0;
-                    video.dwnProgress.video = {
-                        loading: true,
-                        progress: 0
-                    };
-                    YT_SERVICE.downloadVideo({
-                        savePath: this.downloadDirectory,
-                        videoTitle: video.title,
-                        ids: [video.id],
-                        downloadProgressCallback: callbackArgs => {
-                            const { contentLength, progress } = callbackArgs;
-                            video.dwnProgress.progress = Math.trunc(progress);
-                            video.dwnProgress.video.progress = Math.trunc(
-                                progress
-                            );
-                            this.$forceUpdate();
-                        }
-                    })
-                        .then(response => {
-                            if (!this.isElectron) {
-                                downloadInWeb(response);
-                            } else {
-                                this.getVideoDiskInfo(video)
-                                .then(diskInfo => (video.diskInfo = diskInfo));
-                            }
-                            video.dwnProgress.progress = 0;
-                            video.dwnProgress.downloading = false;
-                            video.dwnProgress.video = {
-                                progress: 0,
-                                loading: false
-                            };
-                            if (!noFeedback) {
-                                this.$refs.feedback.open({
-                                    color: "success",
-                                    text: `Video (${video.title}) download complete!`
-                                });
-                            }
-                            resolve();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            reject(error);
+
+                const feedbackFunction = () => {
+                    if (!noFeedback) {
+                        this.$refs.feedback.open({
+                            color: "success",
+                            text: `Video (${video.title}) download complete!`
                         });
+                    }
+                };
+
+                if (!video || !video.video_url) {
+                    reject("No video defined");
+                    return;
                 }
+                if (!this.downloadDirectory && this.isElectron) {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download directory not defined`
+                    });
+                    reject("Download directory not defined");
+                    return;
+                }
+                if (video.diskInfo && video.diskInfo.mp4) {
+                    feedbackFunction();
+                    resolve();
+                    return;
+                }
+                video.dwnProgress.downloading = true;
+                video.dwnProgress.progress = 0;
+                video.dwnProgress.video = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                YT_SERVICE.downloadVideo({
+                    savePath: this.downloadDirectory,
+                    videoTitle: video.title,
+                    id: video.id    ,
+                    downloadProgressCallback: callbackArgs => {
+                        const { contentLength, progress } = callbackArgs;
+                        video.dwnProgress.progress = Math.trunc(progress);
+                        video.dwnProgress.video.progress = Math.trunc(
+                            progress
+                        );
+                        this.$forceUpdate();
+                    }
+                }).then(response => {
+                    if (!this.isElectron) {
+                        downloadInWeb(response);
+                    } else {
+                        this.getVideoDiskInfo(video)
+                        .then(diskInfo => (video.diskInfo = diskInfo));
+                    }
+                    video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
+                    video.dwnProgress.video = {
+                        progress: 0,
+                        loading: false
+                    };
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    console.error(error);
+                    reject(error);
+                });
             });
         },
         downloadMusicFromPreview: function(video, noFeedback) {
@@ -598,99 +612,124 @@ export default {
         },
         downloadMusic: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-                if (
-                    video &&
-                    video.video_url &&
-                    (this.downloadDirectory || !this.isElectron) &&
-                    !video.diskInfo.mp3
-                ) {
-                    video.dwnProgress.downloading = true;
+
+                const feedbackFunction = () => {
+                    if (!noFeedback) {
+                        this.$refs.feedback.open({
+                            color: "success",
+                            text: `MP3 (${video.title}) download complete!`
+                        });
+                    }
+                };
+
+                if (!video || !video.video_url) {
+                    reject("No video defined");
+                    return;
+                }
+                if (!this.downloadDirectory && this.isElectron) {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download directory not defined`
+                    });
+                    reject("Download directory not defined");
+                    return;
+                }
+                if (video.diskInfo && video.diskInfo.mp3) {
+                    feedbackFunction();
+                    resolve();
+                    return;
+                }
+                video.dwnProgress.downloading = true;
+                video.dwnProgress.progress = 0;
+                video.dwnProgress.video = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                video.dwnProgress.music = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                YT_SERVICE.downloadMusic({
+                    savePath: this.downloadDirectory,
+                    videoTitle: video.title,
+                    id: video.id,
+                    mp3: true,
+                    downloadProgressCallback: callbackArgs => {
+                        const {
+                            contentLength,
+                            progress,
+                            videoProgress,
+                            musicProgress
+                        } = callbackArgs;
+                        video.dwnProgress.progress = Math.trunc(progress);
+                        video.dwnProgress.video.progress = Math.trunc(
+                            videoProgress
+                        );
+                        video.dwnProgress.music.progress = Math.trunc(
+                            musicProgress
+                        );
+                        this.$forceUpdate();
+                    }
+                }).then((response) => {
                     video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
                     video.dwnProgress.video = {
-                        loading: true,
+                        loading: false,
                         progress: 0
                     };
                     video.dwnProgress.music = {
-                        loading: true,
+                        loading: false,
                         progress: 0
                     };
-                    YT_SERVICE.downloadMusic({
-                        savePath: this.downloadDirectory,
-                        videoTitle: video.title,
-                        ids: [video.id],
-                        mp3: true,
-                        downloadProgressCallback: callbackArgs => {
-                            const {
-                                contentLength,
-                                progress,
-                                videoProgress,
-                                musicProgress
-                            } = callbackArgs;
-                            video.dwnProgress.progress = Math.trunc(progress);
-                            video.dwnProgress.video.progress = Math.trunc(
-                                videoProgress
-                            );
-                            video.dwnProgress.music.progress = Math.trunc(
-                                musicProgress
-                            );
-                            this.$forceUpdate();
-                        }
-                    })
-                        .then((response) => {
-                            video.dwnProgress.progress = 0;
-                            video.dwnProgress.downloading = false;
-                            video.dwnProgress.video = {
-                                loading: false,
-                                progress: 0
-                            };
-                            video.dwnProgress.music = {
-                                loading: false,
-                                progress: 0
-                            };
-                            if (this.isElectron) {
-                                this.getVideoDiskInfo(video)
-                                .then(diskInfo => (video.diskInfo = diskInfo));
-                            } else {
-                                downloadInWeb(response);
-                            }
-                            if (!noFeedback) {
-                                this.$refs.feedback.open({
-                                    color: "success",
-                                    text: `MP3 (${video.title}) download complete!`
-                                });
-                            }
-                            resolve();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            reject(error);
-                        });
+                    if (this.isElectron) {
+                        this.getVideoDiskInfo(video)
+                        .then(diskInfo => (video.diskInfo = diskInfo));
+                    } else {
+                        downloadInWeb(response);
+                    }
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    console.error(error);
+                    reject(error);
+                });
+            });
+        },
+        downloadNextInChain: function (index, mp3) {
+            return new Promise((resolve, reject) => {
+                if (this.videoList.length <= index) {
+                    resolve();
+                    return;
                 }
+                const video = this.videoList[index];
+                const auxPromise = mp3 ? this.downloadMusic(video, true) : this.downloadVideo(video, true);
+                auxPromise.then(() => this.downloadNextInChain(++index, mp3).then(resolve).catch(reject))
+                .catch(error => {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download error with ${video.title}: ${error}. Download stopped.`
+                    });
+                    reject(error);
+                });
             });
         },
         downloadAllVideo: function() {
-            const promises = [];
-            this.videoList.forEach(video => {
-                promises.push(this.downloadVideo(video, true));
-            });
-            Promise.all(promises).then(() => {
+            this.downloadNextInChain(0).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
                     text: `All videos download complete!`
                 });
-            });
+            }).catch(console.error);
         },
         downloadAllMusic: function() {
-            const promises = [];
-            this.videoList.forEach(video => {
-                promises.push(this.downloadMusic(video, true));
-            });
-            Promise.all(promises).then(() => {
+            this.downloadNextInChain(0, true).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
-                    text: `All MP3 download complete!`
+                    text: `All videos download complete!`
                 });
-            });
+            }).catch(console.error);
         }
     },
     watch: {
