@@ -14,33 +14,55 @@
         </v-img>
 
         <v-card-actions>
-            <v-btn v-if="!added" icon @click="add">
-                <v-icon color="info">add</v-icon>
-            </v-btn>
-            <v-btn v-if="added" icon @click="remove" v-bind:disabled="videoItem.dwnProgress.downloading">
-                <v-icon color="error">remove</v-icon>
-            </v-btn>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn v-if="!added" icon @click="add" v-on="on" v-bind:disabled="videoItem.disabled">
+                        <v-icon color="info">add</v-icon>
+                    </v-btn>
+                </template>
+                <span>Add</span>
+            </v-tooltip>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn v-if="added" icon @click="remove" v-bind:disabled="videoItem.dwnProgress.downloading || videoItem.disabled" v-on="on">
+                        <v-icon color="error">remove</v-icon>
+                    </v-btn>
+                </template>
+                <span>Remove</span>
+            </v-tooltip>
             <v-spacer></v-spacer>
-            <v-btn icon @click="musicClick" v-bind:disabled="videoItem.dwnProgress.downloading">
-                <v-progress-circular
-                indeterminate
-                v-if="videoItem.dwnProgress.music.indeterminate"
-                ></v-progress-circular>
-                <v-progress-circular v-if="videoItem.dwnProgress.music.loading && !videoItem.dwnProgress.music.indeterminate" 
-                v-bind:value="videoItem.dwnProgress.music.progress"></v-progress-circular>
-                <v-icon v-if="!videoItem.dwnProgress.music.loading"
-                v-bind:color="videoItem.diskInfo.mp3 ? 'success' : 'info'">music_video</v-icon>
-            </v-btn>
-            <v-btn icon @click="videoClick" v-bind:disabled="videoItem.dwnProgress.downloading">
-                <v-progress-circular
-                indeterminate
-                v-if="videoItem.dwnProgress.video.indeterminate"
-                ></v-progress-circular>
-                <v-progress-circular v-if="videoItem.dwnProgress.video.loading && !videoItem.dwnProgress.video.indeterminate" 
-                v-bind:value="videoItem.dwnProgress.video.progress"></v-progress-circular>
-                <v-icon v-if="!videoItem.dwnProgress.video.loading" 
-                v-bind:color="videoItem.diskInfo.mp4 ? 'success' : 'info'">videocam</v-icon>
-            </v-btn>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="musicClick" v-bind:disabled="videoItem.dwnProgress.downloading || videoItem.disabled" v-on="on">
+                        <v-progress-circular
+                        indeterminate
+                        v-if="videoItem.dwnProgress.music.indeterminate"
+                        ></v-progress-circular>
+                        <v-progress-circular v-if="videoItem.dwnProgress.music.loading && !videoItem.dwnProgress.music.indeterminate" 
+                        v-bind:value="videoItem.dwnProgress.music.progress"></v-progress-circular>
+                        <v-icon v-if="!videoItem.dwnProgress.music.loading"
+                        v-bind:color="videoItem.diskInfo.mp3 ? 'success' : 'info'">music_video</v-icon>
+                    </v-btn>
+                </template>
+                <span v-if="videoItem.diskInfo.mp3">Play</span>
+                <span v-if="!videoItem.diskInfo.mp3">Download as mp3</span>
+            </v-tooltip>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="videoClick" v-bind:disabled="videoItem.dwnProgress.downloading || videoItem.disabled" v-on="on">
+                        <v-progress-circular
+                        indeterminate
+                        v-if="videoItem.dwnProgress.video.indeterminate"
+                        ></v-progress-circular>
+                        <v-progress-circular v-if="videoItem.dwnProgress.video.loading && !videoItem.dwnProgress.video.indeterminate" 
+                        v-bind:value="videoItem.dwnProgress.video.progress"></v-progress-circular>
+                        <v-icon v-if="!videoItem.dwnProgress.video.loading" 
+                        v-bind:color="videoItem.diskInfo.mp4 ? 'success' : 'info'">videocam</v-icon>
+                    </v-btn>
+                </template>
+                <span v-if="videoItem.diskInfo.mp4">Play</span>
+                <span v-if="!videoItem.diskInfo.mp4">Download as mp4</span>
+            </v-tooltip>
         </v-card-actions>
     </v-card>
 </template>
@@ -66,6 +88,7 @@ export default {
                 mp3: Boolean,
                 mp4: Boolean
             },
+            disabled: false,
             dwnProgress: {
                 progress: 0,
                 downloading: true,

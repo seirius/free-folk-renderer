@@ -41,7 +41,7 @@ const YOUTUBE = {
             if (ids) {
                 axios.post("/youtube/videos-info", {ids})
                 .then(response => {
-                    if (response.status = 200) {
+                    if (response.status === 200) {
                         resolve(response.data);
                     } else {
                         reject(response.data);

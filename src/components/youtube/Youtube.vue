@@ -8,12 +8,22 @@
                 </v-btn>
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn icon @click="openSearch">
-                <v-icon>search</v-icon>
-            </v-btn>
-            <v-btn icon @click="clearVideoList">
-                <v-icon>clear_all</v-icon>
-            </v-btn>
+            <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="openSearch" v-on="on" v-bind:disabled="downloadingAll">
+                        <v-icon>search</v-icon>
+                    </v-btn>
+                </template>
+                <span>Search</span>
+            </v-tooltip>
+            <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="clearVideoList" v-on="on" v-bind:disabled="downloadingAll">
+                        <v-icon>clear_all</v-icon>
+                    </v-btn>
+                </template>
+                <span>Clear all videos</span>
+            </v-tooltip>
         </v-toolbar>
 
         <v-navigation-drawer
@@ -37,7 +47,7 @@
 
             <v-list two-line dark dense>
                 <v-divider v-if="isElectron"></v-divider>
-                <v-list-tile @click="setDownloadDirectory" v-if="isElectron">
+                <v-list-tile @click="setDownloadDirectory" v-if="isElectron" v-bind:disabled="downloadingAll">
                     <v-list-tile-avatar>
                         <v-icon>folder</v-icon>
                     </v-list-tile-avatar>
@@ -60,7 +70,7 @@
                         </v-list-tile>
                     </template>
 
-                    <v-list-tile @click="downloadAllVideo">
+                    <v-list-tile @click="downloadAllVideo" v-bind:disabled="downloadingAll">
                         <v-list-tile-action>
                             <v-icon>videocam</v-icon>
                         </v-list-tile-action>
@@ -68,7 +78,7 @@
                             <v-list-tile-title>as Videos</v-list-tile-title>
                         </v-list-tile-content>
                     </v-list-tile>
-                    <v-list-tile @click="downloadAllMusic">
+                    <v-list-tile @click="downloadAllMusic" v-bind:disabled="downloadingAll">
                         <v-list-tile-action>
                             <v-icon>music_video</v-icon>
                         </v-list-tile-action>
@@ -80,7 +90,7 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-dialog v-model="searchDialog" width="500" dark>
+        <v-dialog v-model="searchDialog" width="500" v-bind:persistent="videoList.length === 0 && tempVideos.length === 0" dark>
             <v-form @submit.prevent="searchVideo">
                 <div class="search-form">
                     <v-text-field
@@ -109,7 +119,7 @@
                 <div class="content">
                     <v-container fluid grid-list-md>
                         <v-layout row wrap>
-                            <v-flex lg2 md3 xs12 v-for="item in videoList" :key="item.title">
+                            <v-flex lg2 md3 xs12 v-for="item in videoList" :key="item.id">
                                 <VideoItem
                                     @remove="removeVideoItem"
                                     @videoClick="videoClick(item)"
@@ -124,49 +134,55 @@
             </div>
         </v-content>
 
+        <v-footer class="pa-3">
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn dark depressed small @click="openVideoSheet" v-on="on">
+                        <v-icon>expand_less</v-icon>
+                    </v-btn>
+                </template>
+                <span>Open search list</span>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <div>
+                <span>Made by <a href="https://github.com/seirius" target="_blank">SeiRiuS</a></span>
+            </div>
+        </v-footer>
+
         <v-bottom-sheet class="preview" v-model="videoSheet">
             <div class="video-sheet">
                 <div class="actions">
                     <div class="button-action">
-                        <v-btn
-                            block
-                            dark
-                            depressed
-                            small
-                            @click="addAllPreviewItems"
-                            color="success"
-                        >
-                            <v-icon>add</v-icon>
-                        </v-btn>
+                        <v-tooltip top>
+                            <template v-slot:activator="{ on }">
+                                <v-btn block dark depressed small @click="addAllPreviewItems" v-on="on" v-bind:disabled="downloadingAll">
+                                    <v-icon>add</v-icon>
+                                </v-btn>
+                            </template>
+                            <span>Add all videos</span>
+                        </v-tooltip>
                     </div>
                     <div class="button-action expand">
-                        <v-btn block dark depressed small @click="toggleExpandedPreview">
-                            <v-icon v-if="!expandPreview">expand_less</v-icon>
-                            <v-icon v-if="expandPreview">expand_more</v-icon>
-                        </v-btn>
-                    </div>
-                    <div class="button-action">
-                        <v-btn block dark depressed small @click="closeVideoSheet" color="error">
-                            <v-icon>close</v-icon>
-                        </v-btn>
+                        <v-tooltip top>
+                            <template v-slot:activator="{ on }">
+                                <v-btn block dark depressed small @click="closeVideoSheet" v-on="on">
+                                    <v-icon>expand_more</v-icon>
+                                </v-btn>
+                            </template>
+                            <span>Close search list</span>
+                        </v-tooltip>
                     </div>
                 </div>
                 <v-container fluid grid-list-md class="video-sheet-content">
-                    <v-layout row v-bind:wrap="expandPreview" class="overflow-auto">
+                    <v-layout row wrap class="overflow-auto">
                         <v-flex
-                            class="preview-video-item"
-                            lg2
-                            md3
-                            xs12
-                            v-for="item in tempVideos"
-                            :key="item.title"
-                        >
+                            class="preview-video-item" lg2 md3 xs12
+                            v-for="item in tempVideos" :key="item.id">
                             <VideoItem
                                 @videoClick="downloadVideoFromPreview(item)"
                                 @musicClick="downloadMusicFromPreview(item)"
                                 @add="addPreviewItems([item])"
-                                v-bind:videoItem="item"
-                            />
+                                v-bind:videoItem="item"/>
                         </v-flex>
                     </v-layout>
                 </v-container>
@@ -290,25 +306,20 @@ export default {
             videoList: [],
             videoSheet: false,
             tempVideos: [],
-            expandPreview: false,
-            downloadSetting: false
+            downloadSetting: false,
+            downloadingAll: false
         };
     },
     methods: {
         openVideoSheet: function() {
-            this.videoSheet = true;
+            if (this.tempVideos.length) {
+                this.videoSheet = true;
+            } else {
+                this.openSearch();
+            }
         },
         closeVideoSheet: function() {
             this.videoSheet = false;
-        },
-        openExpandedPreview: function() {
-            this.expandPreview = true;
-        },
-        closeExpandedPreview: function() {
-            this.expandPreview = false;
-        },
-        toggleExpandedPreview: function() {
-            this.expandPreview = !this.expandPreview;
         },
         obligatorySetDwnDir: function() {
             this.setDownloadDirectory()
@@ -370,11 +381,18 @@ export default {
             });
         },
         searchVideo: function() {
-            if (this.searchUrl) {
+            if (this.searchUrl && !this.downloadingAll) {
+                this.$refs.loader.start();
                 const result = () => {
                     this.closeSarch();
                     this.videoSheet = true;
+                    this.$refs.loader.stop();
                 };
+                const errorResult = error => {
+                    this.closeSarch();
+                    this.$refs.loader.stop();
+                    console.error(error);
+                }
 
                 const resolveItem = (item, diskInfo) => {
                     item.diskInfo = diskInfo;
@@ -400,7 +418,7 @@ export default {
                                 }
                             });
                             result();
-                        });
+                        }).catch(errorResult);
                     } else if (v) {
                         YT_SERVICE.getVideosInfo({ ids: [v] })
                             .then(response => {
@@ -422,8 +440,7 @@ export default {
                                 }
 
                                 result();
-                            })
-                            .catch(console.error);
+                            }).catch(errorResult);
                     }
                 } catch (error) {
                     YT_SERVICE.getByText({ text: this.searchUrl }).then(
@@ -440,7 +457,7 @@ export default {
                             });
                             result();
                         }
-                    );
+                    ).catch(errorResult);
                 }
             }
         },
@@ -715,21 +732,55 @@ export default {
                 });
             });
         },
+        disableAll: function(videos) {
+            if (videos && videos.length) {
+                videos.forEach(video => video.disabled = true);
+            }
+        },
+        enableAll: function(videos) {
+            if (videos && videos.length) {
+                videos.forEach(video => video.disabled = false);
+            }
+        },
+        disableAllItems: function () {
+            this.disableAll(this.videoList);
+            this.disableAll(this.tempVideos);
+        },
+        enableAllItems: function () {
+            this.enableAll(this.videoList);
+            this.enableAll(this.tempVideos);
+        },
         downloadAllVideo: function() {
+            this.downloadingAll = true;
+            this.disableAllItems();
             this.downloadNextInChain(0).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
                     text: `All videos download complete!`
                 });
-            }).catch(console.error);
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.enableAllItems();
+                this.downloadingAll = false;
+            });
         },
         downloadAllMusic: function() {
+            this.downloadingAll = true;
+            this.disableAllItems();
             this.downloadNextInChain(0, true).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
                     text: `All videos download complete!`
                 });
-            }).catch(console.error);
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.enableAllItems();
+                this.downloadingAll = false;
+            });
         }
     },
     watch: {
