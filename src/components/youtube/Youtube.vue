@@ -1,6 +1,6 @@
 <template>
     <v-app dark>
-        <SystemBar />
+        <SystemBar v-if="isElectron" />
         <v-toolbar class="ff-toolbar" app>
             <v-toolbar-title class="headline">
                 <v-btn icon @click="navigation = !navigation">
@@ -8,15 +8,31 @@
                 </v-btn>
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn icon @click="openSearch">
-                <v-icon>search</v-icon>
-            </v-btn>
-            <v-btn icon @click="clearVideoList">
-                <v-icon>clear_all</v-icon>
-            </v-btn>
+            <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="openSearch" v-on="on" v-bind:disabled="downloadingAll">
+                        <v-icon>search</v-icon>
+                    </v-btn>
+                </template>
+                <span>Search</span>
+            </v-tooltip>
+            <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="clearVideoList" v-on="on" v-bind:disabled="downloadingAll">
+                        <v-icon>clear_all</v-icon>
+                    </v-btn>
+                </template>
+                <span>Clear all videos</span>
+            </v-tooltip>
         </v-toolbar>
 
-        <v-navigation-drawer class="ff-navigation" v-model="navigation" app dark>
+        <v-navigation-drawer
+            class="ff-navigation"
+            v-bind:class="{electron: isElectron}"
+            v-model="navigation"
+            app
+            dark
+        >
             <v-list class="pa-3" dark>
                 <v-list-tile avatar>
                     <v-list-tile-content>
@@ -30,8 +46,8 @@
             </v-list>
 
             <v-list two-line dark dense>
-                <v-divider></v-divider>
-                <v-list-tile @click="setDownloadDirectory">
+                <v-divider v-if="isElectron"></v-divider>
+                <v-list-tile @click="setDownloadDirectory" v-if="isElectron" v-bind:disabled="downloadingAll">
                     <v-list-tile-avatar>
                         <v-icon>folder</v-icon>
                     </v-list-tile-avatar>
@@ -54,7 +70,7 @@
                         </v-list-tile>
                     </template>
 
-                    <v-list-tile @click="downloadAllVideo">
+                    <v-list-tile @click="downloadAllVideo" v-bind:disabled="downloadingAll">
                         <v-list-tile-action>
                             <v-icon>videocam</v-icon>
                         </v-list-tile-action>
@@ -62,7 +78,7 @@
                             <v-list-tile-title>as Videos</v-list-tile-title>
                         </v-list-tile-content>
                     </v-list-tile>
-                    <v-list-tile @click="downloadAllMusic">
+                    <v-list-tile @click="downloadAllMusic" v-bind:disabled="downloadingAll">
                         <v-list-tile-action>
                             <v-icon>music_video</v-icon>
                         </v-list-tile-action>
@@ -74,7 +90,7 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-dialog v-model="searchDialog" width="500" dark>
+        <v-dialog v-model="searchDialog" width="500" v-bind:persistent="videoList.length === 0 && tempVideos.length === 0" dark>
             <v-form @submit.prevent="searchVideo">
                 <div class="search-form">
                     <v-text-field
@@ -103,7 +119,7 @@
                 <div class="content">
                     <v-container fluid grid-list-md>
                         <v-layout row wrap>
-                            <v-flex lg2 md3 xs12 v-for="item in videoList" :key="item.title">
+                            <v-flex lg2 md3 xs12 v-for="item in videoList" :key="item.id">
                                 <VideoItem
                                     @remove="removeVideoItem"
                                     @videoClick="videoClick(item)"
@@ -118,49 +134,55 @@
             </div>
         </v-content>
 
+        <v-footer class="pa-3" app>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn dark depressed small @click="openVideoSheet" v-on="on">
+                        <v-icon>expand_less</v-icon>
+                    </v-btn>
+                </template>
+                <span>Open search list</span>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <div>
+                <span>Made by <a href="https://github.com/seirius" target="_blank">SeiRiuS</a></span>
+            </div>
+        </v-footer>
+
         <v-bottom-sheet class="preview" v-model="videoSheet">
             <div class="video-sheet">
                 <div class="actions">
                     <div class="button-action">
-                        <v-btn
-                            block
-                            dark
-                            depressed
-                            small
-                            @click="addAllPreviewItems"
-                            color="success"
-                        >
-                            <v-icon>add</v-icon>
-                        </v-btn>
+                        <v-tooltip top>
+                            <template v-slot:activator="{ on }">
+                                <v-btn block dark depressed small @click="addAllPreviewItems" v-on="on" v-bind:disabled="downloadingAll">
+                                    <v-icon>add</v-icon>
+                                </v-btn>
+                            </template>
+                            <span>Add all videos</span>
+                        </v-tooltip>
                     </div>
                     <div class="button-action expand">
-                        <v-btn block dark depressed small @click="toggleExpandedPreview">
-                            <v-icon v-if="!expandPreview">expand_less</v-icon>
-                            <v-icon v-if="expandPreview">expand_more</v-icon>
-                        </v-btn>
-                    </div>
-                    <div class="button-action">
-                        <v-btn block dark depressed small @click="closeVideoSheet" color="error">
-                            <v-icon>close</v-icon>
-                        </v-btn>
+                        <v-tooltip top>
+                            <template v-slot:activator="{ on }">
+                                <v-btn block dark depressed small @click="closeVideoSheet" v-on="on">
+                                    <v-icon>expand_more</v-icon>
+                                </v-btn>
+                            </template>
+                            <span>Close search list</span>
+                        </v-tooltip>
                     </div>
                 </div>
                 <v-container fluid grid-list-md class="video-sheet-content">
-                    <v-layout row v-bind:wrap="expandPreview" class="overflow-auto">
+                    <v-layout row wrap class="overflow-auto">
                         <v-flex
-                            class="preview-video-item"
-                            lg2
-                            md3
-                            xs12
-                            v-for="item in tempVideos"
-                            :key="item.title"
-                        >
+                            class="preview-video-item" lg2 md3 xs12
+                            v-for="item in tempVideos" :key="item.id">
                             <VideoItem
                                 @videoClick="downloadVideoFromPreview(item)"
                                 @musicClick="downloadMusicFromPreview(item)"
                                 @add="addPreviewItems([item])"
-                                v-bind:videoItem="item"
-                            />
+                                v-bind:videoItem="item"/>
                         </v-flex>
                     </v-layout>
                 </v-container>
@@ -261,8 +283,9 @@ import VideoItem from "@/components/youtube/VideoItem.vue";
 import SystemBar from "@/components/common/SystemBar.vue";
 import Loader from "@/components/common/Loader.vue";
 import Feedback from "@/components/common/Feedback.vue";
-const { WINDOW_MANAGER, dialog, config, google } = window.electron;
-const { YOUTUBE } = google;
+const dialog = window.electron ? window.electron.dialog : null;
+import { YT_SERVICE } from "./youtube-service";
+import { CONFIG_SERVICE } from "./../config-service";
 
 export default {
     name: "Youtube",
@@ -275,6 +298,7 @@ export default {
     props: {},
     data() {
         return {
+            isElectron: false,
             navigation: false,
             downloadDirectory: "",
             searchDialog: false,
@@ -282,39 +306,35 @@ export default {
             videoList: [],
             videoSheet: false,
             tempVideos: [],
-            expandPreview: false,
-            downloadSetting: false
+            downloadSetting: false,
+            downloadingAll: false
         };
     },
     methods: {
         openVideoSheet: function() {
-            this.videoSheet = true;
+            if (this.tempVideos.length) {
+                this.videoSheet = true;
+            } else {
+                this.openSearch();
+            }
         },
         closeVideoSheet: function() {
             this.videoSheet = false;
         },
-        openExpandedPreview: function() {
-            this.expandPreview = true;
-        },
-        closeExpandedPreview: function() {
-            this.expandPreview = false;
-        },
-        toggleExpandedPreview: function() {
-            this.expandPreview = !this.expandPreview;
-        },
-        obligatorySetDwnDir: function () {
-            this.setDownloadDirectory().then(() => {
-                this.downloadSetting = false;
-                if (this.videoList.length === 0) {
-                    this.openSearch();
-                }
-            })
-            .catch(err => {
-                this.$refs.feedback.open({
-                    color: "error",
-                    text: `You must set a download directory`
+        obligatorySetDwnDir: function() {
+            this.setDownloadDirectory()
+                .then(() => {
+                    this.downloadSetting = false;
+                    if (this.videoList.length === 0) {
+                        this.openSearch();
+                    }
+                })
+                .catch(err => {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `You must set a download directory`
+                    });
                 });
-            });
         },
         setDownloadDirectory: function() {
             return new Promise((resolve, reject) => {
@@ -324,9 +344,9 @@ export default {
                 if (paths && paths.length === 1) {
                     this.downloadDirectory = paths[0];
                     resolve();
-                    config.getUserConfig().then(userConfig => {
+                    CONFIG_SERVICE.getUserConfig().then(userConfig => {
                         userConfig.setPath = this.downloadDirectory;
-                        config.saveCurrentUserConfig();
+                        CONFIG_SERVICE.saveUserConfig(userConfig);
                     });
                 } else {
                     reject("Path not selected");
@@ -345,12 +365,11 @@ export default {
         },
         getVideoDiskInfo: function(video) {
             return new Promise((resolve, reject) => {
-                google
-                    .getItemDiskInformation({
-                        title: video.title,
-                        filePath: this.downloadDirectory,
-                        fileTypes: [".mp3", ".mp4"]
-                    })
+                YT_SERVICE.getItemDiskInformation({
+                    title: video.title,
+                    filePath: this.downloadDirectory,
+                    fileTypes: [".mp3", ".mp4"]
+                })
                     .then(info => {
                         resolve({
                             mp3: !!info[".mp3"],
@@ -362,11 +381,18 @@ export default {
             });
         },
         searchVideo: function() {
-            if (this.searchUrl) {
+            if (this.searchUrl && !this.downloadingAll) {
+                this.$refs.loader.start();
                 const result = () => {
                     this.closeSarch();
                     this.videoSheet = true;
+                    this.$refs.loader.stop();
                 };
+                const errorResult = error => {
+                    this.closeSarch();
+                    this.$refs.loader.stop();
+                    console.error(error);
+                }
 
                 const resolveItem = (item, diskInfo) => {
                     item.diskInfo = diskInfo;
@@ -380,36 +406,58 @@ export default {
                     const v = url.searchParams.get("v");
 
                     if (list) {
-                        YOUTUBE.getPlaylist({ id: list }).then(items => {
+                        YT_SERVICE.getPlaylist({ id: list }).then(items => {
                             this.tempVideos = [];
                             items.forEach(item => {
-                                this.getVideoDiskInfo(item).then(diskInfo =>
-                                    resolveItem(item, diskInfo)
-                                );
+                                if (this.isElectron) {
+                                    this.getVideoDiskInfo(item).then(diskInfo =>
+                                        resolveItem(item, diskInfo)
+                                    );
+                                } else {
+                                    resolveItem(item, initDiskInfo());
+                                }
                             });
                             result();
-                        });
+                        }).catch(errorResult);
                     } else if (v) {
-                        YOUTUBE.getVideosInfo({ ids: v })
+                        YT_SERVICE.getVideosInfo({ ids: [v] })
                             .then(response => {
                                 this.tempVideos = [];
-                                this.getVideoDiskInfo(response).then(diskInfo =>
-                                    resolveItem(response, diskInfo)
-                                );
+                                if (this.isElectron) {
+                                    if (response.length === 1) {
+                                        const video = response[0];
+                                        this.getVideoDiskInfo(video)
+                                        .then(diskInfo => resolveItem(video, diskInfo));
+                                    } else {
+                                        alert("TODO");
+                                    }
+                                } else {
+                                    if (response.length === 1) {
+                                        resolveItem(response[0], initDiskInfo());
+                                    } else {
+                                        alert("TODO");
+                                    }
+                                }
+
                                 result();
-                            })
-                            .catch(console.error);
+                            }).catch(errorResult);
                     }
                 } catch (error) {
-                    YOUTUBE.getByText({ text: this.searchUrl }).then(items => {
-                        this.tempVideos = [];
-                        items.forEach(item => {
-                            this.getVideoDiskInfo(item).then(diskInfo =>
-                                resolveItem(item, diskInfo)
-                            );
-                        });
-                        result();
-                    });
+                    YT_SERVICE.getByText({ text: this.searchUrl }).then(
+                        items => {
+                            this.tempVideos = [];
+                            items.forEach(item => {
+                                if (this.isElectron) {
+                                    this.getVideoDiskInfo(item).then(diskInfo =>
+                                        resolveItem(item, diskInfo)
+                                    );
+                                } else {
+                                    resolveItem(item, initDiskInfo());
+                                }
+                            });
+                            result();
+                        }
+                    ).catch(errorResult);
                 }
             }
         },
@@ -421,6 +469,9 @@ export default {
                     this.tempVideos.splice(tempIndex, 1);
                 }
             });
+            if (this.tempVideos.length === 0) {
+                this.closeVideoSheet();
+            }
         },
         addAllPreviewItems: function() {
             this.addPreviewItems(this.tempVideos.slice(0));
@@ -437,9 +488,9 @@ export default {
                         this.videoList.unshift(video);
                     }
                 });
-                config.getUserConfig().then(userConfig => {
+                CONFIG_SERVICE.getUserConfig().then(userConfig => {
                     userConfig.videoList = this.videoList;
-                    config.saveCurrentUserConfig();
+                    CONFIG_SERVICE.saveUserConfig(userConfig);
                 });
             }
         },
@@ -447,17 +498,17 @@ export default {
             const videoListIndex = this.videoList.indexOf(item);
             if (videoListIndex > -1) {
                 this.videoList.splice(videoListIndex, 1);
-                config.getUserConfig().then(userConfig => {
+                CONFIG_SERVICE.getUserConfig().then(userConfig => {
                     userConfig.videoList = this.videoList;
-                    config.saveCurrentUserConfig();
+                    CONFIG_SERVICE.saveUserConfig(userConfig);
                 });
             }
         },
         clearVideoList: function() {
             this.videoList = [];
-            config.getUserConfig().then(userConfig => {
+            CONFIG_SERVICE.getUserConfig().then(userConfig => {
                 userConfig.videoList = this.videoList;
-                config.saveCurrentUserConfig();
+                CONFIG_SERVICE.saveUserConfig(userConfig);
             });
         },
         downloadVideoFromPreview: function(video, noFeedback) {
@@ -468,85 +519,105 @@ export default {
             this.downloadVideo(video, noFeedback);
         },
         musicClick: function(video) {
-            this.getVideoDiskInfo(video).then(diskInfo => {
-                if (diskInfo.mp3) {
-                    window.open(
-                        `#/video/${diskInfo.safeTitle}.mp3/mp3`,
-                        "video"
-                    );
-                } else {
-                    this.downloadMusic(video);
-                }
-            });
+            if (this.isElectron) {
+                this.getVideoDiskInfo(video)
+                .then(diskInfo => {
+                    if (diskInfo.mp3) {
+                        window.open(
+                            `#/video/${diskInfo.safeTitle}.mp3/mp3`,
+                            "video"
+                        );
+                    } else {
+                        this.downloadMusic(video);
+                    }
+                });
+            } else {
+                this.downloadMusic(video);
+            }
         },
         videoClick: function(video) {
-            this.getVideoDiskInfo(video).then(diskInfo => {
-                if (diskInfo.mp4) {
-                    window.open(
-                        `#/video/${diskInfo.safeTitle}.mp4/mp4`,
-                        "video"
-                    );
-                } else {
-                    this.downloadVideo(video);
-                }
-            });
+            if (this.isElectron) {
+                this.getVideoDiskInfo(video).then(diskInfo => {
+                    if (diskInfo.mp4) {
+                        window.open(
+                            `#/video/${diskInfo.safeTitle}.mp4/mp4`,
+                            "video"
+                        );
+                    } else {
+                        this.downloadVideo(video);
+                    }
+                });
+            } else {
+                this.downloadVideo(video);
+            }
         },
         downloadVideo: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-                if (
-                    video &&
-                    video.video_url &&
-                    this.downloadDirectory &&
-                    !video.diskInfo.mp4
-                ) {
-                    video.dwnProgress.downloading = true;
-                    video.dwnProgress.progress = 0;
-                    video.dwnProgress.video = {
-                        loading: true,
-                        progress: 0
-                    };
-                    google
-                        .downloadVideo({
-                            savePath: this.downloadDirectory,
-                            videoTitle: video.title,
-                            videoUrl: video.video_url,
-                            downloadProgressCallback: callbackArgs => {
-                                const {
-                                    contentLength,
-                                    progress
-                                } = callbackArgs;
-                                video.dwnProgress.progress = Math.trunc(
-                                    progress
-                                );
-                                video.dwnProgress.video.progress = Math.trunc(
-                                    progress
-                                );
-                                this.$forceUpdate();
-                            }
-                        })
-                        .then(response => {
-                            video.dwnProgress.progress = 0;
-                            video.dwnProgress.downloading = false;
-                            video.dwnProgress.video = {
-                                progress: 0,
-                                loading: false
-                            };
-                            this.getVideoDiskInfo(video).then(
-                                diskInfo => (video.diskInfo = diskInfo)
-                            );
-                            if (!noFeedback) {
-                                this.$refs.feedback.open({
-                                    color: "success",
-                                    text: `Video (${video.title}) download complete!`
-                                });
-                            }
-                            resolve();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            reject(error);
+
+                const feedbackFunction = () => {
+                    if (!noFeedback) {
+                        this.$refs.feedback.open({
+                            color: "success",
+                            text: `Video (${video.title}) download complete!`
                         });
+                    }
+                };
+
+                if (!video || !video.video_url) {
+                    reject("No video defined");
+                    return;
                 }
+                if (!this.downloadDirectory && this.isElectron) {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download directory not defined`
+                    });
+                    reject("Download directory not defined");
+                    return;
+                }
+                if (video.diskInfo && video.diskInfo.mp4) {
+                    feedbackFunction();
+                    resolve();
+                    return;
+                }
+                video.dwnProgress.downloading = true;
+                video.dwnProgress.progress = 0;
+                video.dwnProgress.video = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                YT_SERVICE.downloadVideo({
+                    savePath: this.downloadDirectory,
+                    videoTitle: video.title,
+                    id: video.id    ,
+                    downloadProgressCallback: callbackArgs => {
+                        const { contentLength, progress } = callbackArgs;
+                        video.dwnProgress.progress = Math.trunc(progress);
+                        video.dwnProgress.video.progress = Math.trunc(
+                            progress
+                        );
+                        this.$forceUpdate();
+                    }
+                }).then(response => {
+                    if (!this.isElectron) {
+                        downloadInWeb(response);
+                    } else {
+                        this.getVideoDiskInfo(video)
+                        .then(diskInfo => (video.diskInfo = diskInfo));
+                    }
+                    video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
+                    video.dwnProgress.video = {
+                        progress: 0,
+                        loading: false
+                    };
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    console.error(error);
+                    reject(error);
+                });
             });
         },
         downloadMusicFromPreview: function(video, noFeedback) {
@@ -558,97 +629,157 @@ export default {
         },
         downloadMusic: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-                if (
-                    video &&
-                    video.video_url &&
-                    this.downloadDirectory &&
-                    !video.diskInfo.mp3
-                ) {
-                    video.dwnProgress.downloading = true;
+
+                const feedbackFunction = () => {
+                    if (!noFeedback) {
+                        this.$refs.feedback.open({
+                            color: "success",
+                            text: `MP3 (${video.title}) download complete!`
+                        });
+                    }
+                };
+
+                if (!video || !video.video_url) {
+                    reject("No video defined");
+                    return;
+                }
+                if (!this.downloadDirectory && this.isElectron) {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download directory not defined`
+                    });
+                    reject("Download directory not defined");
+                    return;
+                }
+                if (video.diskInfo && video.diskInfo.mp3) {
+                    feedbackFunction();
+                    resolve();
+                    return;
+                }
+                video.dwnProgress.downloading = true;
+                video.dwnProgress.progress = 0;
+                video.dwnProgress.video = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                video.dwnProgress.music = {
+                    loading: true,
+                    progress: 0,
+                    indeterminate: !this.isElectron
+                };
+                YT_SERVICE.downloadMusic({
+                    savePath: this.downloadDirectory,
+                    videoTitle: video.title,
+                    id: video.id,
+                    mp3: true,
+                    downloadProgressCallback: callbackArgs => {
+                        const {
+                            contentLength,
+                            progress,
+                            videoProgress,
+                            musicProgress
+                        } = callbackArgs;
+                        video.dwnProgress.progress = Math.trunc(progress);
+                        video.dwnProgress.video.progress = Math.trunc(
+                            videoProgress
+                        );
+                        video.dwnProgress.music.progress = Math.trunc(
+                            musicProgress
+                        );
+                        this.$forceUpdate();
+                    }
+                }).then((response) => {
                     video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
                     video.dwnProgress.video = {
-                        loading: true,
+                        loading: false,
                         progress: 0
                     };
                     video.dwnProgress.music = {
-                        loading: true,
+                        loading: false,
                         progress: 0
                     };
-                    google
-                        .downloadMusic({
-                            savePath: this.downloadDirectory,
-                            videoTitle: video.title,
-                            videoUrl: video.video_url,
-                            downloadProgressCallback: callbackArgs => {
-                                const {
-                                    contentLength,
-                                    progress,
-                                    videoProgress,
-                                    musicProgress
-                                } = callbackArgs;
-                                video.dwnProgress.progress = Math.trunc(
-                                    progress
-                                );
-                                video.dwnProgress.video.progress = Math.trunc(
-                                    videoProgress
-                                );
-                                video.dwnProgress.music.progress = Math.trunc(
-                                    musicProgress
-                                );
-                                this.$forceUpdate();
-                            }
-                        })
-                        .then(() => {
-                            video.dwnProgress.progress = 0;
-                            video.dwnProgress.downloading = false;
-                            video.dwnProgress.video = {
-                                loading: false,
-                                progress: 0
-                            };
-                            video.dwnProgress.music = {
-                                loading: false,
-                                progress: 0
-                            };
-                            this.getVideoDiskInfo(video).then(
-                                diskInfo => (video.diskInfo = diskInfo)
-                            );
-                            if (!noFeedback) {
-                                this.$refs.feedback.open({
-                                    color: "success",
-                                    text: `MP3 (${video.title}) download complete!`
-                                });
-                            }
-                            resolve();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            reject(error);
-                        });
-                }
+                    if (this.isElectron) {
+                        this.getVideoDiskInfo(video)
+                        .then(diskInfo => (video.diskInfo = diskInfo));
+                    } else {
+                        downloadInWeb(response);
+                    }
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    console.error(error);
+                    reject(error);
+                });
             });
         },
-        downloadAllVideo: function() {
-            const promises = [];
-            this.videoList.forEach(video => {
-                promises.push(this.downloadVideo(video, true));
+        downloadNextInChain: function (index, mp3) {
+            return new Promise((resolve, reject) => {
+                if (this.videoList.length <= index) {
+                    resolve();
+                    return;
+                }
+                const video = this.videoList[index];
+                const auxPromise = mp3 ? this.downloadMusic(video, true) : this.downloadVideo(video, true);
+                auxPromise.then(() => this.downloadNextInChain(++index, mp3).then(resolve).catch(reject))
+                .catch(error => {
+                    this.$refs.feedback.open({
+                        color: "error",
+                        text: `Download error with ${video.title}: ${error}. Download stopped.`
+                    });
+                    reject(error);
+                });
             });
-            Promise.all(promises).then(() => {
+        },
+        disableAll: function(videos) {
+            if (videos && videos.length) {
+                videos.forEach(video => video.disabled = true);
+            }
+        },
+        enableAll: function(videos) {
+            if (videos && videos.length) {
+                videos.forEach(video => video.disabled = false);
+            }
+        },
+        disableAllItems: function () {
+            this.disableAll(this.videoList);
+            this.disableAll(this.tempVideos);
+        },
+        enableAllItems: function () {
+            this.enableAll(this.videoList);
+            this.enableAll(this.tempVideos);
+        },
+        downloadAllVideo: function() {
+            this.downloadingAll = true;
+            this.disableAllItems();
+            this.downloadNextInChain(0).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
                     text: `All videos download complete!`
                 });
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.enableAllItems();
+                this.downloadingAll = false;
             });
         },
         downloadAllMusic: function() {
-            const promises = [];
-            this.videoList.forEach(video => {
-                promises.push(this.downloadMusic(video, true));
-            });
-            Promise.all(promises).then(() => {
+            this.downloadingAll = true;
+            this.disableAllItems();
+            this.downloadNextInChain(0, true).then(() => {
                 this.$refs.feedback.open({
                     color: "success",
-                    text: `All MP3 download complete!`
+                    text: `All videos download complete!`
                 });
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.enableAllItems();
+                this.downloadingAll = false;
             });
         }
     },
@@ -660,6 +791,7 @@ export default {
         }
     },
     mounted: function() {
+        this.isElectron = !!window.electron;
         window.addEventListener(
             "keyup",
             event => {
@@ -669,37 +801,48 @@ export default {
             },
             true
         );
-        config
-            .getUserConfig()
+        CONFIG_SERVICE.getUserConfig()
             .then(userConfig => {
-                this.downloadDirectory = userConfig.setPath;
-                if (!this.downloadDirectory) {
-                    this.downloadSetting = true;
-                }
-                this.videoList = userConfig.videoList;
-                if ((!this.videoList || !this.videoList.length) && this.downloadDirectory) {
-                    this.openSearch();
-                } else if (this.videoList) {
-                    const promises = [];
-                    this.$refs.loader.start();
-                    this.videoList.forEach(video => {
-                        video.dwnProgress = initProgress();
-                        const promise = this.getVideoDiskInfo(video);
-                        promises.push(promise);
-                        promise.then(diskInfo => {
-                            video.diskInfo = diskInfo;
-                        });
-                    });
+                if (userConfig) {
+                    this.videoList = userConfig.videoList;
 
-                    Promise.all(promises)
-                        .then(() => {
-                            this.$forceUpdate();
-                            this.$refs.loader.stop();
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            this.$refs.loader.stop();
-                        });
+                    if (this.isElectron) {
+                        this.downloadDirectory = userConfig.setPath;
+                        if (!this.downloadDirectory) {
+                            this.downloadSetting = true;
+                        }
+                        if (
+                            (!this.videoList || !this.videoList.length) &&
+                            this.downloadDirectory
+                        ) {
+                            this.openSearch();
+                        } else if (this.videoList) {
+                            const promises = [];
+                            this.$refs.loader.start();
+                            this.videoList.forEach(video => {
+                                video.dwnProgress = initProgress();
+                                const promise = this.getVideoDiskInfo(video);
+                                promises.push(promise);
+                                promise.then(diskInfo => {
+                                    video.diskInfo = diskInfo;
+                                });
+                            });
+
+                            Promise.all(promises)
+                                .then(() => {
+                                    this.$forceUpdate();
+                                    this.$refs.loader.stop();
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                    this.$refs.loader.stop();
+                                });
+                        }
+                    } else {
+                        if (!this.videoList || !this.videoList.length) {
+                            this.openSearch();
+                        }
+                    }
                 }
             })
             .catch(console.error);
@@ -719,5 +862,23 @@ function initProgress() {
         progress: 0,
         downloading: false
     };
+}
+
+function initDiskInfo() {
+    return {
+        mp3: false,
+        mp4: false
+    };
+}
+
+function downloadInWeb(args) {
+    const { data, filename } = args;
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename); //or any other extension
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 </script>

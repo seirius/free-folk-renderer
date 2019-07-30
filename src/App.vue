@@ -6,7 +6,7 @@
 html {
     overflow: hidden;
 }
-.ff-navigation {
+.ff-navigation.electron {
     margin-top: 32px !important;
 }
 ::-webkit-scrollbar {
@@ -65,9 +65,11 @@ export default {
     },
     data() {
         return {
+            isElectron: false
         };
     },
     mounted: function() {
+        this.isElectron = !!window.electron;
     },
     methods: {
     }

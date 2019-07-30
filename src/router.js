@@ -15,6 +15,11 @@ export default new Router({
           name: "video-view",
           props: true,
           component: () => import("./views/VideoView.vue")
+      },
+      {
+          path: "/test-web",
+          name: "test-web",
+          component: () => import("./views/TestWeb.vue")
       }
     ]
   })
