@@ -134,7 +134,7 @@
             </div>
         </v-content>
 
-        <v-footer class="pa-3">
+        <v-footer class="pa-3" app>
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
                     <v-btn dark depressed small @click="openVideoSheet" v-on="on">
