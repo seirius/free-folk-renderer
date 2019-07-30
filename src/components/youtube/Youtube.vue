@@ -962,7 +962,8 @@ export default {
         downloadAllMusic: function() {
             this.downloadingAll = true;
             this.disableAllItems();
-            this.downloadNextInChain(0, true)
+            this.currentListDownloading = this.videoList.slice(0);
+            this.downloadNextInChain(this.currentListDownloading, 0, true)
             .then(() => {
                 this.$refs.feedback.open({
                     color: "success",
