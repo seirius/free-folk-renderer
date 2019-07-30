@@ -412,6 +412,7 @@ const dialog = window.electron ? window.electron.dialog : null;
 import { YT_SERVICE } from "./youtube-service";
 import { META_SERVICE } from "./../meta-service";
 import { CONFIG_SERVICE } from "./../config-service";
+import { UTIL_SERVICE } from "./../util-service";
 
 import { version } from "./../../../package.json";
 
@@ -587,6 +588,20 @@ export default {
                                 result();
                             })
                             .catch(errorResult);
+                    } else {
+                        UTIL_SERVICE.getUnshortenedUrl({url: this.searchUrl})
+                        .then(response => {
+                            this.$refs.loader.stop();
+                            if (response.url !== this.searchUrl) {
+                                this.searchUrl = response.url;
+                                this.searchVideo();
+                            } else {
+                                this.$refs.feedback.open({
+                                    color: "error",
+                                    text: `URL (${this.searchUrl}) not valid!`
+                                });
+                            }
+                        }).catch(errorResult);
                     }
                 } catch (error) {
                     YT_SERVICE.getByText({ text: this.searchUrl })
