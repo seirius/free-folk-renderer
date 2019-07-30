@@ -16,6 +16,8 @@ new Vue({
     router,
     render: h => h(App),
     mounted() {
-        window.setImmediate = window.electron.setImmediate;
+        if (window.electron) {
+            window.setImmediate = window.electron.setImmediate;
+        }
     },
 }).$mount('#app');

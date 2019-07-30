@@ -6,7 +6,7 @@
 html {
     overflow: hidden;
 }
-.ff-navigation {
+.ff-navigation.electron {
     margin-top: 32px !important;
 }
 ::-webkit-scrollbar {
@@ -42,6 +42,15 @@ html {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+.unselectable {
+    user-select: none;
+}
+.undraggable {
+    -webkit-user-drag: none;
+}
+.text-right {
+    text-align: right;
+}
 </style>
 
 
@@ -56,9 +65,11 @@ export default {
     },
     data() {
         return {
+            isElectron: false
         };
     },
     mounted: function() {
+        this.isElectron = !!window.electron;
     },
     methods: {
     }
