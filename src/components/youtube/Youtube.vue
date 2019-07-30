@@ -124,6 +124,7 @@
                                     @remove="removeVideoItem"
                                     @videoClick="videoClick(item)"
                                     @musicClick="musicClick(item)"
+                                    @openVideoClick="openVideoClick(item)"
                                     added
                                     v-bind:videoItem="item"
                                 />
@@ -182,6 +183,7 @@
                                 @videoClick="downloadVideoFromPreview(item)"
                                 @musicClick="downloadMusicFromPreview(item)"
                                 @add="addPreviewItems([item])"
+                                @openVideoClick="openVideoClick(item)"
                                 v-bind:videoItem="item"/>
                         </v-flex>
                     </v-layout>
@@ -781,6 +783,9 @@ export default {
                 this.enableAllItems();
                 this.downloadingAll = false;
             });
+        },
+        openVideoClick: function (videoItem) {
+            window.open(videoItem.video_url, "_blank");
         }
     },
     watch: {
