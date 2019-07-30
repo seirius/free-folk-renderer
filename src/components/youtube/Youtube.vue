@@ -92,18 +92,6 @@
                     </v-list-tile>
                 </v-list-group>
             </v-list>
-            <v-spacer></v-spacer>
-            <v-list two-line dark dense>
-                <v-list-tile @click="console.log('ok')">
-                    <v-list-tile-avatar>
-                        <v-icon>info</v-icon>
-                    </v-list-tile-avatar>
-
-                    <v-list-tile-content>
-                        <v-list-tile-title>About</v-list-tile-title>
-                    </v-list-tile-content>
-                </v-list-tile>
-            </v-list>
         </v-navigation-drawer>
 
         <v-dialog
