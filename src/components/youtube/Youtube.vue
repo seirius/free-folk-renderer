@@ -47,7 +47,11 @@
 
             <v-list two-line dark dense>
                 <v-divider v-if="isElectron"></v-divider>
-                <v-list-tile @click="setDownloadDirectory" v-if="isElectron" v-bind:disabled="downloadingAll">
+                <v-list-tile
+                    @click="setDownloadDirectory"
+                    v-if="isElectron"
+                    v-bind:disabled="downloadingAll"
+                >
                     <v-list-tile-avatar>
                         <v-icon>folder</v-icon>
                     </v-list-tile-avatar>
@@ -88,9 +92,26 @@
                     </v-list-tile>
                 </v-list-group>
             </v-list>
+            <v-spacer></v-spacer>
+            <v-list two-line dark dense>
+                <v-list-tile @click="console.log('ok')">
+                    <v-list-tile-avatar>
+                        <v-icon>info</v-icon>
+                    </v-list-tile-avatar>
+
+                    <v-list-tile-content>
+                        <v-list-tile-title>About</v-list-tile-title>
+                    </v-list-tile-content>
+                </v-list-tile>
+            </v-list>
         </v-navigation-drawer>
 
-        <v-dialog v-model="searchDialog" width="500" v-bind:persistent="videoList.length === 0 && tempVideos.length === 0" dark>
+        <v-dialog
+            v-model="searchDialog"
+            width="500"
+            v-bind:persistent="videoList.length === 0 && tempVideos.length === 0"
+            dark
+        >
             <v-form @submit.prevent="searchVideo">
                 <div class="search-form">
                     <v-text-field
@@ -124,7 +145,7 @@
                                     @remove="removeVideoItem"
                                     @videoClick="videoClick(item)"
                                     @musicClick="musicClick(item)"
-                                    @openVideoClick="openVideoClick(item)"
+                                    @openVideoClick="openLink(item.video_url)"
                                     added
                                     v-bind:videoItem="item"
                                 />
@@ -138,7 +159,16 @@
         <v-footer class="pa-3" app>
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
-                    <v-btn dark depressed small @click="openVideoSheet" v-on="on">
+                    <v-btn icon dark depressed small @click="appInfo = true" v-on="on">
+                        <v-icon>info</v-icon>
+                    </v-btn>
+                </template>
+                <span>About</span>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon dark depressed small @click="openVideoSheet" v-on="on">
                         <v-icon>expand_less</v-icon>
                     </v-btn>
                 </template>
@@ -146,7 +176,10 @@
             </v-tooltip>
             <v-spacer></v-spacer>
             <div>
-                <span>Made by <a href="https://github.com/seirius" target="_blank">SeiRiuS</a></span>
+                <span>
+                    Made by
+                    <a href="https://github.com/seirius" target="_blank">SeiRiuS</a>
+                </span>
             </div>
         </v-footer>
 
@@ -156,7 +189,15 @@
                     <div class="button-action">
                         <v-tooltip top>
                             <template v-slot:activator="{ on }">
-                                <v-btn block dark depressed small @click="addAllPreviewItems" v-on="on" v-bind:disabled="downloadingAll">
+                                <v-btn
+                                    block
+                                    dark
+                                    depressed
+                                    small
+                                    @click="addAllPreviewItems"
+                                    v-on="on"
+                                    v-bind:disabled="downloadingAll"
+                                >
                                     <v-icon>add</v-icon>
                                 </v-btn>
                             </template>
@@ -166,7 +207,14 @@
                     <div class="button-action expand">
                         <v-tooltip top>
                             <template v-slot:activator="{ on }">
-                                <v-btn block dark depressed small @click="closeVideoSheet" v-on="on">
+                                <v-btn
+                                    block
+                                    dark
+                                    depressed
+                                    small
+                                    @click="closeVideoSheet"
+                                    v-on="on"
+                                >
                                     <v-icon>expand_more</v-icon>
                                 </v-btn>
                             </template>
@@ -177,19 +225,106 @@
                 <v-container fluid grid-list-md class="video-sheet-content">
                     <v-layout row wrap class="overflow-auto">
                         <v-flex
-                            class="preview-video-item" lg2 md3 xs12
-                            v-for="item in tempVideos" :key="item.id">
+                            class="preview-video-item"
+                            lg2
+                            md3
+                            xs12
+                            v-for="item in tempVideos"
+                            :key="item.id"
+                        >
                             <VideoItem
                                 @videoClick="downloadVideoFromPreview(item)"
                                 @musicClick="downloadMusicFromPreview(item)"
                                 @add="addPreviewItems([item])"
-                                @openVideoClick="openVideoClick(item)"
-                                v-bind:videoItem="item"/>
+                                @openVideoClick="openLink(item.video_url)"
+                                v-bind:videoItem="item"
+                            />
                         </v-flex>
                     </v-layout>
                 </v-container>
             </div>
         </v-bottom-sheet>
+
+        <v-dialog v-model="appInfo" width="500" dark>
+            <v-card>
+                <v-card-title class="headline" primary-title>About</v-card-title>
+                <v-card-text>
+                    <v-list two-line>
+                        <v-list-tile v-if="info.version.renderer">
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">devices</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>FreeFolk Renderer</v-list-tile-title>
+                                <v-list-tile-sub-title>Version: {{info.version.renderer}}</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/free-folk-renderer')">
+                                    <v-icon>launch</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                        <v-list-tile v-if="info.version.server">
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">domain</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>FreeFolk Server</v-list-tile-title>
+                                <v-list-tile-sub-title>Version: {{info.version.server}}</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/FreeFolkServer')">
+                                    <v-icon>launch</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                        <v-list-tile v-if="info.version.app">
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">dvr</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>FreeFolk App</v-list-tile-title>
+                                <v-list-tile-sub-title>Version: {{info.version.app}}</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/FreeFolkApp')">
+                                    <v-icon>launch</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                        <v-list-tile v-if="info.version.common">
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">compare_arrows</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>FreeFolk Common</v-list-tile-title>
+                                <v-list-tile-sub-title>Version: {{info.version.common}}</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/FreeFolkCommon')">
+                                    <v-icon>launch</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                    </v-list>
+                </v-card-text>
+
+                <v-divider></v-divider>
+
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="appInfo = false">Close</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
 
         <v-dialog v-model="downloadSetting" width="500" dark persistent>
             <v-card>
@@ -287,7 +422,10 @@ import Loader from "@/components/common/Loader.vue";
 import Feedback from "@/components/common/Feedback.vue";
 const dialog = window.electron ? window.electron.dialog : null;
 import { YT_SERVICE } from "./youtube-service";
+import { META_SERVICE } from "./../meta-service";
 import { CONFIG_SERVICE } from "./../config-service";
+
+import { version } from "./../../../package.json";
 
 export default {
     name: "Youtube",
@@ -309,7 +447,16 @@ export default {
             videoSheet: false,
             tempVideos: [],
             downloadSetting: false,
-            downloadingAll: false
+            downloadingAll: false,
+            appInfo: false,
+            info: {
+                version: {
+                    renderer: version,
+                    app: "",
+                    server: "",
+                    common: ""
+                }
+            }
         };
     },
     methods: {
@@ -394,7 +541,7 @@ export default {
                     this.closeSarch();
                     this.$refs.loader.stop();
                     console.error(error);
-                }
+                };
 
                 const resolveItem = (item, diskInfo) => {
                     item.diskInfo = diskInfo;
@@ -408,19 +555,22 @@ export default {
                     const v = url.searchParams.get("v");
 
                     if (list) {
-                        YT_SERVICE.getPlaylist({ id: list }).then(items => {
-                            this.tempVideos = [];
-                            items.forEach(item => {
-                                if (this.isElectron) {
-                                    this.getVideoDiskInfo(item).then(diskInfo =>
-                                        resolveItem(item, diskInfo)
-                                    );
-                                } else {
-                                    resolveItem(item, initDiskInfo());
-                                }
-                            });
-                            result();
-                        }).catch(errorResult);
+                        YT_SERVICE.getPlaylist({ id: list })
+                            .then(items => {
+                                this.tempVideos = [];
+                                items.forEach(item => {
+                                    if (this.isElectron) {
+                                        this.getVideoDiskInfo(item).then(
+                                            diskInfo =>
+                                                resolveItem(item, diskInfo)
+                                        );
+                                    } else {
+                                        resolveItem(item, initDiskInfo());
+                                    }
+                                });
+                                result();
+                            })
+                            .catch(errorResult);
                     } else if (v) {
                         YT_SERVICE.getVideosInfo({ ids: [v] })
                             .then(response => {
@@ -428,25 +578,31 @@ export default {
                                 if (this.isElectron) {
                                     if (response.length === 1) {
                                         const video = response[0];
-                                        this.getVideoDiskInfo(video)
-                                        .then(diskInfo => resolveItem(video, diskInfo));
+                                        this.getVideoDiskInfo(video).then(
+                                            diskInfo =>
+                                                resolveItem(video, diskInfo)
+                                        );
                                     } else {
                                         alert("TODO");
                                     }
                                 } else {
                                     if (response.length === 1) {
-                                        resolveItem(response[0], initDiskInfo());
+                                        resolveItem(
+                                            response[0],
+                                            initDiskInfo()
+                                        );
                                     } else {
                                         alert("TODO");
                                     }
                                 }
 
                                 result();
-                            }).catch(errorResult);
+                            })
+                            .catch(errorResult);
                     }
                 } catch (error) {
-                    YT_SERVICE.getByText({ text: this.searchUrl }).then(
-                        items => {
+                    YT_SERVICE.getByText({ text: this.searchUrl })
+                        .then(items => {
                             this.tempVideos = [];
                             items.forEach(item => {
                                 if (this.isElectron) {
@@ -458,8 +614,8 @@ export default {
                                 }
                             });
                             result();
-                        }
-                    ).catch(errorResult);
+                        })
+                        .catch(errorResult);
                 }
             }
         },
@@ -522,8 +678,7 @@ export default {
         },
         musicClick: function(video) {
             if (this.isElectron) {
-                this.getVideoDiskInfo(video)
-                .then(diskInfo => {
+                this.getVideoDiskInfo(video).then(diskInfo => {
                     if (diskInfo.mp3) {
                         window.open(
                             `#/video/${diskInfo.safeTitle}.mp3/mp3`,
@@ -555,7 +710,6 @@ export default {
         },
         downloadVideo: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-
                 const feedbackFunction = () => {
                     if (!noFeedback) {
                         this.$refs.feedback.open({
@@ -592,34 +746,35 @@ export default {
                 YT_SERVICE.downloadVideo({
                     savePath: this.downloadDirectory,
                     videoTitle: video.title,
-                    id: video.id    ,
+                    id: video.id,
                     downloadProgressCallback: callbackArgs => {
                         const { contentLength, progress } = callbackArgs;
                         video.dwnProgress.progress = Math.trunc(progress);
-                        video.dwnProgress.video.progress = Math.trunc(
-                            progress
-                        );
+                        video.dwnProgress.video.progress = Math.trunc(progress);
                         this.$forceUpdate();
                     }
-                }).then(response => {
-                    if (!this.isElectron) {
-                        downloadInWeb(response);
-                    } else {
-                        this.getVideoDiskInfo(video)
-                        .then(diskInfo => (video.diskInfo = diskInfo));
-                    }
-                    video.dwnProgress.progress = 0;
-                    video.dwnProgress.downloading = false;
-                    video.dwnProgress.video = {
-                        progress: 0,
-                        loading: false
-                    };
-                    feedbackFunction();
-                    resolve();
-                }).catch(error => {
-                    console.error(error);
-                    reject(error);
-                });
+                })
+                    .then(response => {
+                        if (!this.isElectron) {
+                            downloadInWeb(response);
+                        } else {
+                            this.getVideoDiskInfo(video).then(
+                                diskInfo => (video.diskInfo = diskInfo)
+                            );
+                        }
+                        video.dwnProgress.progress = 0;
+                        video.dwnProgress.downloading = false;
+                        video.dwnProgress.video = {
+                            progress: 0,
+                            loading: false
+                        };
+                        feedbackFunction();
+                        resolve();
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        reject(error);
+                    });
             });
         },
         downloadMusicFromPreview: function(video, noFeedback) {
@@ -631,7 +786,6 @@ export default {
         },
         downloadMusic: function(video, noFeedback) {
             return new Promise((resolve, reject) => {
-
                 const feedbackFunction = () => {
                     if (!noFeedback) {
                         this.$refs.feedback.open({
@@ -691,101 +845,115 @@ export default {
                         );
                         this.$forceUpdate();
                     }
-                }).then((response) => {
-                    video.dwnProgress.progress = 0;
-                    video.dwnProgress.downloading = false;
-                    video.dwnProgress.video = {
-                        loading: false,
-                        progress: 0
-                    };
-                    video.dwnProgress.music = {
-                        loading: false,
-                        progress: 0
-                    };
-                    if (this.isElectron) {
-                        this.getVideoDiskInfo(video)
-                        .then(diskInfo => (video.diskInfo = diskInfo));
-                    } else {
-                        downloadInWeb(response);
-                    }
-                    feedbackFunction();
-                    resolve();
-                }).catch(error => {
-                    console.error(error);
-                    reject(error);
-                });
+                })
+                    .then(response => {
+                        video.dwnProgress.progress = 0;
+                        video.dwnProgress.downloading = false;
+                        video.dwnProgress.video = {
+                            loading: false,
+                            progress: 0
+                        };
+                        video.dwnProgress.music = {
+                            loading: false,
+                            progress: 0
+                        };
+                        if (this.isElectron) {
+                            this.getVideoDiskInfo(video).then(
+                                diskInfo => (video.diskInfo = diskInfo)
+                            );
+                        } else {
+                            downloadInWeb(response);
+                        }
+                        feedbackFunction();
+                        resolve();
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        reject(error);
+                    });
             });
         },
-        downloadNextInChain: function (index, mp3) {
+        downloadNextInChain: function(index, mp3) {
             return new Promise((resolve, reject) => {
                 if (this.videoList.length <= index) {
                     resolve();
                     return;
                 }
                 const video = this.videoList[index];
-                const auxPromise = mp3 ? this.downloadMusic(video, true) : this.downloadVideo(video, true);
-                auxPromise.then(() => this.downloadNextInChain(++index, mp3).then(resolve).catch(reject))
-                .catch(error => {
-                    this.$refs.feedback.open({
-                        color: "error",
-                        text: `Download error with ${video.title}: ${error}. Download stopped.`
+                const auxPromise = mp3
+                    ? this.downloadMusic(video, true)
+                    : this.downloadVideo(video, true);
+                auxPromise
+                    .then(() =>
+                        this.downloadNextInChain(++index, mp3)
+                            .then(resolve)
+                            .catch(reject)
+                    )
+                    .catch(error => {
+                        this.$refs.feedback.open({
+                            color: "error",
+                            text: `Download error with ${video.title}: ${error}. Download stopped.`
+                        });
+                        reject(error);
                     });
-                    reject(error);
-                });
             });
         },
         disableAll: function(videos) {
             if (videos && videos.length) {
-                videos.forEach(video => video.disabled = true);
+                videos.forEach(video => (video.disabled = true));
             }
         },
         enableAll: function(videos) {
             if (videos && videos.length) {
-                videos.forEach(video => video.disabled = false);
+                videos.forEach(video => (video.disabled = false));
             }
         },
-        disableAllItems: function () {
+        disableAllItems: function() {
             this.disableAll(this.videoList);
             this.disableAll(this.tempVideos);
         },
-        enableAllItems: function () {
+        enableAllItems: function() {
             this.enableAll(this.videoList);
             this.enableAll(this.tempVideos);
         },
         downloadAllVideo: function() {
             this.downloadingAll = true;
             this.disableAllItems();
-            this.downloadNextInChain(0).then(() => {
-                this.$refs.feedback.open({
-                    color: "success",
-                    text: `All videos download complete!`
+            this.downloadNextInChain(0)
+                .then(() => {
+                    this.$refs.feedback.open({
+                        color: "success",
+                        text: `All videos download complete!`
+                    });
+                    this.enableAllItems();
+                    this.downloadingAll = false;
+                })
+                .catch(error => {
+                    console.error(error);
+                    this.enableAllItems();
+                    this.downloadingAll = false;
                 });
-                this.enableAllItems();
-                this.downloadingAll = false;
-            }).catch(error => {
-                console.error(error);
-                this.enableAllItems();
-                this.downloadingAll = false;
-            });
         },
         downloadAllMusic: function() {
             this.downloadingAll = true;
             this.disableAllItems();
-            this.downloadNextInChain(0, true).then(() => {
-                this.$refs.feedback.open({
-                    color: "success",
-                    text: `All videos download complete!`
+            this.downloadNextInChain(0, true)
+                .then(() => {
+                    this.$refs.feedback.open({
+                        color: "success",
+                        text: `All videos download complete!`
+                    });
+                    this.enableAllItems();
+                    this.downloadingAll = false;
+                })
+                .catch(error => {
+                    console.error(error);
+                    this.enableAllItems();
+                    this.downloadingAll = false;
                 });
-                this.enableAllItems();
-                this.downloadingAll = false;
-            }).catch(error => {
-                console.error(error);
-                this.enableAllItems();
-                this.downloadingAll = false;
-            });
         },
-        openVideoClick: function (videoItem) {
-            window.open(videoItem.video_url, "_blank");
+        openLink: function (link) {
+            window.open(link, "_blank");
         }
     },
     watch: {
@@ -807,50 +975,57 @@ export default {
             true
         );
         CONFIG_SERVICE.getUserConfig()
-            .then(userConfig => {
-                if (userConfig) {
-                    this.videoList = userConfig.videoList;
+        .then(userConfig => {
+            if (userConfig) {
+                this.videoList = userConfig.videoList;
 
-                    if (this.isElectron) {
-                        this.downloadDirectory = userConfig.setPath;
-                        if (!this.downloadDirectory) {
-                            this.downloadSetting = true;
-                        }
-                        if (
-                            (!this.videoList || !this.videoList.length) &&
-                            this.downloadDirectory
-                        ) {
-                            this.openSearch();
-                        } else if (this.videoList) {
-                            const promises = [];
-                            this.$refs.loader.start();
-                            this.videoList.forEach(video => {
-                                video.dwnProgress = initProgress();
-                                const promise = this.getVideoDiskInfo(video);
-                                promises.push(promise);
-                                promise.then(diskInfo => {
-                                    video.diskInfo = diskInfo;
-                                });
+                if (this.isElectron) {
+                    this.downloadDirectory = userConfig.setPath;
+                    if (!this.downloadDirectory) {
+                        this.downloadSetting = true;
+                    }
+                    if (
+                        (!this.videoList || !this.videoList.length) &&
+                        this.downloadDirectory
+                    ) {
+                        this.openSearch();
+                    } else if (this.videoList) {
+                        const promises = [];
+                        this.$refs.loader.start();
+                        this.videoList.forEach(video => {
+                            video.dwnProgress = initProgress();
+                            const promise = this.getVideoDiskInfo(video);
+                            promises.push(promise);
+                            promise.then(diskInfo => {
+                                video.diskInfo = diskInfo;
                             });
+                        });
 
-                            Promise.all(promises)
-                                .then(() => {
-                                    this.$forceUpdate();
-                                    this.$refs.loader.stop();
-                                })
-                                .catch(error => {
-                                    console.error(error);
-                                    this.$refs.loader.stop();
-                                });
-                        }
-                    } else {
-                        if (!this.videoList || !this.videoList.length) {
-                            this.openSearch();
-                        }
+                        Promise.all(promises)
+                            .then(() => {
+                                this.$forceUpdate();
+                                this.$refs.loader.stop();
+                            })
+                            .catch(error => {
+                                console.error(error);
+                                this.$refs.loader.stop();
+                            });
+                    }
+                } else {
+                    if (!this.videoList || !this.videoList.length) {
+                        this.openSearch();
                     }
                 }
-            })
-            .catch(console.error);
+            }
+        }).catch(console.error);
+
+        META_SERVICE.getMetaVersion().then(response => {
+            if (response) {
+                this.info.version.app = response.appVersion;
+                this.info.version.server = response.serverVersion;
+                this.info.version.common = response.commonVersion;
+            }
+        }).catch(console.error);
     }
 };
 
@@ -879,9 +1054,9 @@ function initDiskInfo() {
 function downloadInWeb(args) {
     const { data, filename } = args;
     const url = window.URL.createObjectURL(new Blob([data]));
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.setAttribute('download', filename); //or any other extension
+    link.setAttribute("download", filename); //or any other extension
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -34,12 +34,11 @@
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
                     <v-btn v-if="videoItem.video_url" icon @click="openVideo" v-on="on">
-                        <v-icon color="info">video_library</v-icon>
+                        <v-icon color="info">language</v-icon>
                     </v-btn>
                 </template>
                 <span>Open in Youtube</span>
             </v-tooltip>
-            <v-spacer></v-spacer>
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
                     <v-btn icon @click="musicClick" v-bind:disabled="videoItem.dwnProgress.downloading || videoItem.disabled" v-on="on">
