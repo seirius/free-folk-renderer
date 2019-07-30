@@ -8,6 +8,14 @@
                 </v-btn>
             </v-toolbar-title>
             <v-spacer></v-spacer>
+            <v-tooltip v-if="downloadingAll" bottom>
+                <template v-slot:activator="{ on }">
+                    <v-btn icon @click="stopDownloadingAll" v-on="on">
+                        <v-icon>stop</v-icon>
+                    </v-btn>
+                </template>
+                <span>Stop downloading</span>
+            </v-tooltip>
             <v-tooltip bottom>
                 <template v-slot:activator="{ on }">
                     <v-btn icon @click="openSearch" v-on="on" v-bind:disabled="downloadingAll">
@@ -445,7 +453,8 @@ export default {
                     server: "",
                     common: ""
                 }
-            }
+            },
+            currentListDownloading: []
         };
     },
     methods: {
@@ -739,6 +748,16 @@ export default {
                     resolve();
                     return;
                 }
+
+                const restDwn = () => {
+                    video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
+                    video.dwnProgress.video = {
+                        progress: 0,
+                        loading: false
+                    };
+                };
+
                 video.dwnProgress.downloading = true;
                 video.dwnProgress.progress = 0;
                 video.dwnProgress.video = {
@@ -756,28 +775,22 @@ export default {
                         video.dwnProgress.video.progress = Math.trunc(progress);
                         this.$forceUpdate();
                     }
-                })
-                    .then(response => {
-                        if (!this.isElectron) {
-                            downloadInWeb(response);
-                        } else {
-                            this.getVideoDiskInfo(video).then(
-                                diskInfo => (video.diskInfo = diskInfo)
-                            );
-                        }
-                        video.dwnProgress.progress = 0;
-                        video.dwnProgress.downloading = false;
-                        video.dwnProgress.video = {
-                            progress: 0,
-                            loading: false
-                        };
-                        feedbackFunction();
-                        resolve();
-                    })
-                    .catch(error => {
-                        console.error(error);
-                        reject(error);
-                    });
+                }).then(response => {
+                    if (!this.isElectron) {
+                        downloadInWeb(response);
+                    } else {
+                        this.getVideoDiskInfo(video).then(
+                            diskInfo => (video.diskInfo = diskInfo)
+                        );
+                    }
+                    restDwn();
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    restDwn();
+                    console.error(error);
+                    reject(error);
+                });
             });
         },
         downloadMusicFromPreview: function(video, noFeedback) {
@@ -815,6 +828,20 @@ export default {
                     resolve();
                     return;
                 }
+
+                const resetDwn = () => {
+                    video.dwnProgress.progress = 0;
+                    video.dwnProgress.downloading = false;
+                    video.dwnProgress.video = {
+                        loading: false,
+                        progress: 0
+                    };
+                    video.dwnProgress.music = {
+                        loading: false,
+                        progress: 0
+                    };
+                };
+
                 video.dwnProgress.downloading = true;
                 video.dwnProgress.progress = 0;
                 video.dwnProgress.video = {
@@ -848,47 +875,37 @@ export default {
                         );
                         this.$forceUpdate();
                     }
-                })
-                    .then(response => {
-                        video.dwnProgress.progress = 0;
-                        video.dwnProgress.downloading = false;
-                        video.dwnProgress.video = {
-                            loading: false,
-                            progress: 0
-                        };
-                        video.dwnProgress.music = {
-                            loading: false,
-                            progress: 0
-                        };
-                        if (this.isElectron) {
-                            this.getVideoDiskInfo(video).then(
-                                diskInfo => (video.diskInfo = diskInfo)
-                            );
-                        } else {
-                            downloadInWeb(response);
-                        }
-                        feedbackFunction();
-                        resolve();
-                    })
-                    .catch(error => {
-                        console.error(error);
-                        reject(error);
-                    });
+                }).then(response => {
+                    resetDwn();
+                    if (this.isElectron) {
+                        this.getVideoDiskInfo(video).then(
+                            diskInfo => (video.diskInfo = diskInfo)
+                        );
+                    } else {
+                        downloadInWeb(response);
+                    }
+                    feedbackFunction();
+                    resolve();
+                }).catch(error => {
+                    resetDwn();
+                    console.error(error);
+                    reject(error);
+                });
             });
         },
-        downloadNextInChain: function(index, mp3) {
+        downloadNextInChain: function(videoList, index, mp3) {
             return new Promise((resolve, reject) => {
-                if (this.videoList.length <= index) {
+                if (videoList.length <= index) {
                     resolve();
                     return;
                 }
-                const video = this.videoList[index];
+                const video = videoList[index];
                 const auxPromise = mp3
                     ? this.downloadMusic(video, true)
                     : this.downloadVideo(video, true);
                 auxPromise
                     .then(() =>
-                        this.downloadNextInChain(++index, mp3)
+                        this.downloadNextInChain(videoList,++index, mp3)
                             .then(resolve)
                             .catch(reject)
                     )
@@ -919,41 +936,45 @@ export default {
             this.enableAll(this.videoList);
             this.enableAll(this.tempVideos);
         },
+        stopDownloadingAll: function () {
+            this.currentListDownloading.length = 0;
+        },
         downloadAllVideo: function() {
             this.downloadingAll = true;
             this.disableAllItems();
-            this.downloadNextInChain(0)
-                .then(() => {
-                    this.$refs.feedback.open({
-                        color: "success",
-                        text: `All videos download complete!`
-                    });
-                    this.enableAllItems();
-                    this.downloadingAll = false;
-                })
-                .catch(error => {
-                    console.error(error);
-                    this.enableAllItems();
-                    this.downloadingAll = false;
+            this.currentListDownloading = this.videoList.slice(0);
+            this.downloadNextInChain(this.currentListDownloading, 0)
+            .then(() => {
+                this.$refs.feedback.open({
+                    color: "success",
+                    text: `All videos download complete!`
                 });
+                this.stopDownloadingAll();
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.stopDownloadingAll();
+                this.enableAllItems();
+                this.downloadingAll = false;
+            });
         },
         downloadAllMusic: function() {
             this.downloadingAll = true;
             this.disableAllItems();
             this.downloadNextInChain(0, true)
-                .then(() => {
-                    this.$refs.feedback.open({
-                        color: "success",
-                        text: `All videos download complete!`
-                    });
-                    this.enableAllItems();
-                    this.downloadingAll = false;
-                })
-                .catch(error => {
-                    console.error(error);
-                    this.enableAllItems();
-                    this.downloadingAll = false;
+            .then(() => {
+                this.$refs.feedback.open({
+                    color: "success",
+                    text: `All videos download complete!`
                 });
+                this.enableAllItems();
+                this.downloadingAll = false;
+            }).catch(error => {
+                console.error(error);
+                this.enableAllItems();
+                this.downloadingAll = false;
+            });
         },
         openLink: function (link) {
             window.open(link, "_blank");
