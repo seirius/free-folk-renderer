@@ -310,6 +310,41 @@
                                 </v-btn>
                             </v-list-tile-action>
                         </v-list-tile>
+
+                        <v-divider></v-divider>
+
+                        <v-list-tile>
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">laptop_windows</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>Desktop application</v-list-tile-title>
+                                <v-list-tile-sub-title>Windows SO (Windows 7/8/10)</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/FreeFolkApp/releases/download/v1.0.24/freefolkapp-1.0.24-setup.exe')">
+                                    <v-icon>vertical_align_bottom</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                        <v-list-tile>
+                            <v-list-tile-action>
+                                <v-icon color="cyan lighten-1">laptop_windows</v-icon>
+                            </v-list-tile-action>
+
+                            <v-list-tile-content>
+                                <v-list-tile-title>Desktop application</v-list-tile-title>
+                                <v-list-tile-sub-title>Linux SO (debian)</v-list-tile-sub-title>
+                            </v-list-tile-content>
+
+                            <v-list-tile-action>
+                                <v-btn icon @click="openLink('https://github.com/seirius/FreeFolkApp/releases/download/v1.0.24/freefolkapp_1.0.24_amd64.deb')">
+                                    <v-icon>vertical_align_bottom</v-icon>
+                                </v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
                     </v-list>
                 </v-card-text>
 
