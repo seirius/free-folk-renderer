@@ -12,7 +12,7 @@
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.0-rc.23",
     "core-js": "^2.6.9",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "popper.js": "^1.15.0",
     "uuid": "^3.3.2",
     "video.js": "^7.6.0",
